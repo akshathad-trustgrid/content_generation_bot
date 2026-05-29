@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SynQ Social - Content Generator Bot</title>
+  
+  <!-- Modern Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- App Wrapper -->
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar">
+      <div class="sidebar-header">
+        <div class="logo-glowing-ring"></div>
+        <div class="logo-text">
+          <span class="logo-brand">SynQ</span>
+          <span class="logo-sub">social</span>
+        </div>
+      </div>
+      
+      <div class="system-status">
+        <span class="status-pulse active"></span>
+        <span class="status-label">Ollama Llama 3.2:3b Connected</span>
+      </div>
+      
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-tab="generator">
+          <i data-lucide="sparkles"></i>
+          <span>AI Generator</span>
+        </button>
+        <button class="nav-btn" data-tab="library">
+          <i data-lucide="library"></i>
+          <span>Articles Library</span>
+          <span class="badge" id="library-count">0</span>
+        </button>
+        <button class="nav-btn" data-tab="settings">
+          <i data-lucide="settings"></i>
+          <span>Settings</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <p class="footer-title">Refining Internet Culture</p>
+        <p class="footer-desc">Rebellious. Ethical. Human.</p>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main">
+      
+      <!-- Top Bar -->
+      <header class="app-header">
+        <div class="header-welcome">
+          <h1 id="page-title">Content Workspace</h1>
+          <p id="page-subtitle" class="text-muted">Draft, refine, and publish cinematic content in favor of SynQ Social</p>
+        </div>
+        
+        <div class="header-stats">
+          <div class="stat-bubble">
+            <span class="stat-val" id="stats-drafts">0</span>
+            <span class="stat-lbl">Drafts</span>
+          </div>
+          <div class="stat-bubble">
+            <span class="stat-val" id="stats-published">0</span>
+            <span class="stat-lbl">Published</span>
+          </div>
+          <div class="stat-bubble">
+            <span class="stat-val" id="stats-keywords">0%</span>
+            <span class="stat-lbl">Keywords Met</span>
+          </div>
+        </div>
+      </header>
+
+      <!-- Content Container -->
+      <div class="content-viewport">
+
+        <!-- TAB 1: GENERATOR -->
+        <section class="tab-content active" id="tab-generator">
+          <div class="generator-layout">
+            
+            <!-- Left panel: Form parameters -->
+            <div class="generator-params card">
+              <h2 class="card-title"><i data-lucide="sliders"></i> Parameters</h2>
+              
+              <div class="form-group">
+                <label for="prompt-input">What's the theme or core topic?</label>
+                <textarea id="prompt-input" placeholder="e.g., How Instagram exploits our dopamine loops, and why a human-first platform like SynQ Social gives ownership back..." rows="4"></textarea>
+              </div>
+
+              <div class="form-group">
+                <label>Select Target Keywords</label>
+                <div class="keyword-selector-box">
+                  <div class="keyword-selector-header">
+                    <span class="selected-count" id="kw-selected-count">0 selected</span>
+                    <button class="clear-btn" id="kw-clear-all">Clear All</button>
+                  </div>
+                  <div class="keyword-categories" id="keywords-accordion">
+                    <!-- Loaded dynamically -->
+                    <div class="loading-spinner">Loading keywords...</div>
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-generate" id="btn-generate-article">
+                <i data-lucide="wand2"></i>
+                <span>Generate Article</span>
+              </button>
+            </div>
+
+            <!-- Center panel: Text editor & live preview -->
+            <div class="generator-workspace">
+              
+              <div class="workspace-header card">
+                <div class="editor-title-container">
+                  <input type="text" id="article-title-input" placeholder="Article Title" readonly>
+                </div>
+                <div class="workspace-actions">
+                  <button class="btn btn-secondary" id="btn-save-draft" disabled>
+                    <i data-lucide="save"></i> Save Draft
+                  </button>
+                  <button class="btn btn-accent" id="btn-preview-publish" disabled>
+                    <i data-lucide="share-2"></i> Preview & Publish
+                  </button>
+                </div>
+              </div>
+
+              <!-- Main Editor/Output Frame -->
+              <div class="editor-card card">
+                
+                <!-- Loading State overlay -->
+                <div class="editor-loading-overlay hidden" id="editor-loading">
+                  <div class="spinner-container">
+                    <div class="glowing-spinner-ring"></div>
+                    <div class="loading-pulse-logo">SynQ</div>
+                  </div>
+                  <div class="loading-status-text">Weaving your article...</div>
+                  <div class="loading-progress-bar">
+                    <div class="loading-progress-fill" style="width: 0%"></div>
+                  </div>
+                  <div class="loading-quote" id="loading-quote">"Privacy is not about having something to hide. It is about having something to protect."</div>
+                </div>
+
+                <!-- Empty State -->
+                <div class="editor-empty-state" id="editor-empty">
+                  <div class="empty-icon-wrap">
+                    <i data-lucide="pen-tool"></i>
+                  </div>
+                  <h3>Your Creative Workspace</h3>
+                  <p>Enter a topic prompt on the left, select your target keywords, and click Generate. Your article will appear here in real-time, matching SynQ's rebellious, philosophical tone.</p>
+                </div>
+
+                <!-- Active Editor Textarea -->
+                <div class="editor-wrapper hidden" id="editor-wrapper">
+                  <div class="editor-toolbar">
+                    <button class="tb-btn active" id="tb-edit-tab"><i data-lucide="edit-3"></i> Editor</button>
+                    <button class="tb-btn" id="tb-preview-tab"><i data-lucide="eye"></i> Markdown Preview</button>
+                    <span class="word-count" id="editor-word-count">0 words</span>
+                  </div>
+                  <div class="editor-body">
+                    <textarea id="article-editor-textarea" placeholder="Start typing or let Ollama write for you..."></textarea>
+                    <div class="markdown-preview-pane hidden" id="article-markdown-preview"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- AI Refinement & Prompts History -->
+              <div class="refinement-card card hidden" id="refinement-container">
+                <div class="refinement-header">
+                  <h3><i data-lucide="message-square-code"></i> AI Refine</h3>
+                  <span class="refinement-hint text-muted">Iterate using prompts</span>
+                </div>
+                
+                <!-- Conversation prompt history -->
+                <div class="refinement-history" id="refinement-history-list">
+                  <!-- History of prompts used -->
+                </div>
+
+                <div class="refinement-input-wrap">
+                  <input type="text" id="refine-prompt-input" placeholder="e.g. Make the hook more cinematic, or include 'privacy social media app' in paragraph two...">
+                  <button class="btn btn-primary" id="btn-refine-article">
+                    <i data-lucide="corner-down-left"></i> Refine
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right panel: Live Keywords tracker -->
+            <div class="generator-keywords card">
+              <h2 class="card-title"><i data-lucide="target"></i> SEO Keywords Tracker</h2>
+              <p class="section-desc">Instantly matches text inside the editor. Click on a keyword to copy or insert.</p>
+              
+              <div class="keyword-progress">
+                <div class="kprogress-bar">
+                  <div class="kprogress-fill" id="kw-tracker-progress" style="width: 0%"></div>
+                </div>
+                <div class="kprogress-lbl">
+                  <span id="kw-tracker-matched">0</span> / <span id="kw-tracker-total">0</span> target keywords matched
+                </div>
+              </div>
+
+              <div class="tracker-keyword-list" id="tracker-keywords-container">
+                <!-- Loaded dynamically -->
+                <div class="text-muted text-center" style="padding: 20px 0;">No target keywords selected.</div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- TAB 2: LIBRARY -->
+        <section class="tab-content" id="tab-library">
+          <div class="library-toolbar card">
+            <div class="library-filters">
+              <button class="filter-btn active" data-filter="all">All Articles</button>
+              <button class="filter-btn" data-filter="draft">Drafts</button>
+              <button class="filter-btn" data-filter="published">Published</button>
+            </div>
+            <div class="library-search">
+              <i data-lucide="search"></i>
+              <input type="text" id="library-search-input" placeholder="Search by title, prompt or keyword...">
+            </div>
+          </div>
+
+          <div class="library-grid" id="library-articles-grid">
+            <!-- Dynamic article cards -->
+            <div class="loading-spinner">Loading article library...</div>
+          </div>
+        </section>
+
+        <!-- TAB 3: SETTINGS -->
+        <section class="tab-content" id="tab-settings">
+          <div class="settings-grid">
+            
+            <div class="settings-form card">
+              <h2 class="card-title"><i data-lucide="server"></i> Connection & Model Settings</h2>
+              
+              <div class="form-group">
+                <label for="settings-ollama-url">Ollama Server URL</label>
+                <input type="text" id="settings-ollama-url" value="http://localhost:11434">
+                <p class="help-text">Standard Ollama API port is 11434. Must be running locally.</p>
+              </div>
+
+              <div class="form-group">
+                <label for="settings-ollama-model">Ollama Model</label>
+                <input type="text" id="settings-ollama-model" value="llama3.2:3b">
+                <p class="help-text">We recommend <code>llama3.2:3b</code> or <code>llama3.2</code>.</p>
+              </div>
+
+              <div class="form-group">
+                <label for="settings-webhook-url">Mock Publish Webhook URL</label>
+                <input type="text" id="settings-webhook-url" placeholder="e.g. https://hooks.zapier.com/hooks/catch/...">
+                <p class="help-text">Optional. If provided, hits this URL with article details when published.</p>
+              </div>
+
+              <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
+            </div>
+
+            <div class="settings-profile card">
+              <h2 class="card-title"><i data-lucide="user-check"></i> Social Media Author Settings</h2>
+              <p class="section-desc">Used to display the preview card for simulated social media publishing (LinkedIn, etc.).</p>
+
+              <div class="form-group">
+                <label for="settings-author-name">Author Name</label>
+                <input type="text" id="settings-author-name" value="SynQ Social Explorer">
+              </div>
+
+              <div class="form-group">
+                <label for="settings-author-title">Author Headline / Subtitle</label>
+                <input type="text" id="settings-author-title" value="Digital Wellness Advocate, SynQ Social">
+              </div>
+
+              <div class="author-preview-snippet">
+                <div class="aps-avatar">SQ</div>
+                <div class="aps-info">
+                  <h4 id="aps-preview-name">SynQ Social Explorer</h4>
+                  <p id="aps-preview-title">Digital Wellness Advocate, SynQ Social</p>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+  </div>
+
+  <!-- LINKEDIN PREVIEW & PUBLISH MODAL -->
+  <div class="modal-backdrop hidden" id="publish-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3><i data-lucide="linkedin" class="icon-linkedin"></i> LinkedIn Feed Publisher</h3>
+        <button class="modal-close" id="btn-close-modal"><i data-lucide="x"></i></button>
+      </div>
+      
+      <div class="modal-body">
+        <p class="modal-desc">Here is how your SynQ Social post will look on LinkedIn. Review formatting before sharing.</p>
+        
+        <!-- LinkedIn Mock Feed Item -->
+        <div class="linkedin-post-card">
+          <div class="li-header">
+            <div class="li-avatar" id="li-post-avatar">SQ</div>
+            <div class="li-author-meta">
+              <span class="li-name" id="li-post-author">SynQ Social Explorer</span>
+              <span class="li-title" id="li-post-title">Digital Wellness Advocate, SynQ Social</span>
+              <span class="li-time">Just now • <i data-lucide="globe"></i></span>
+            </div>
+            <button class="li-more-btn"><i data-lucide="more-horizontal"></i></button>
+          </div>
+          
+          <div class="li-content">
+            <h4 class="li-post-heading" id="li-post-headline-text">Title of Post</h4>
+            <div class="li-body-text" id="li-post-body-text">
+              Post body goes here...
+            </div>
+          </div>
+
+          <div class="li-reactions">
+            <div class="li-react-icons">
+              <span class="react-thumb"><i data-lucide="thumbs-up"></i></span>
+              <span class="react-heart"><i data-lucide="heart"></i></span>
+              <span class="react-insight"><i data-lucide="award"></i></span>
+              <span class="react-count">42</span>
+            </div>
+            <div class="li-react-comments">
+              <span>9 comments • 4 shares</span>
+            </div>
+          </div>
+          
+          <div class="li-actions">
+            <button class="li-act-btn"><i data-lucide="thumbs-up"></i> <span>Like</span></button>
+            <button class="li-act-btn"><i data-lucide="message-square"></i> <span>Comment</span></button>
+            <button class="li-act-btn"><i data-lucide="repeat"></i> <span>Repost</span></button>
+            <button class="li-act-btn"><i data-lucide="send"></i> <span>Send</span></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" id="btn-copy-post-text">
+          <i data-lucide="copy"></i> Copy Content
+        </button>
+        <button class="btn btn-accent" id="btn-confirm-publish">
+          <i data-lucide="send"></i> Publish to Social Media
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Confetti Canvas -->
+  <canvas class="confetti-canvas hidden" id="confetti-canvas"></canvas>
+
+  <!-- JavaScript Client App -->
+  <script src="app.js" type="module"></script>
+</body>
+</html>

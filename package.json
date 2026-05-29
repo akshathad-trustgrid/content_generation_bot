@@ -1,0 +1,21 @@
+{
+  "name": "synq-social-content-bot",
+  "version": "1.0.0",
+  "description": "Content Generator Bot for SynQ Social, powered by Ollama llama3.2:3b",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.19.2"
+  },
+  "keywords": [
+    "synq-social",
+    "ollama",
+    "llama3.2",
+    "content-generator"
+  ],
+  "author": "Antigravity",
+  "license": "MIT"
+}
