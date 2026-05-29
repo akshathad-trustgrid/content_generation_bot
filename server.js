@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const http = require('http');
+const { Readable } = require('stream');
 const db = require('./database');
 
 const app = express();
@@ -309,7 +310,7 @@ app.post('/api/articles/generate', async (req, res) => {
       throw new Error(`Ollama returned status ${response.status}`);
     }
 
-    const reader = response.body;
+    const reader = Readable.fromWeb(response.body);
     let fullResponseText = '';
 
     // Handle chunk processing
@@ -434,7 +435,7 @@ app.post('/api/articles/:id/refine', async (req, res) => {
       throw new Error(`Ollama returned status ${response.status}`);
     }
 
-    const reader = response.body;
+    const reader = Readable.fromWeb(response.body);
     let fullResponseText = '';
 
     reader.on('data', (chunk) => {
