@@ -205,6 +205,46 @@ app.post('/api/config', (req, res) => {
   res.json(updatedConfig);
 });
 
+app.post('/api/config/test-webhook', async (req, res) => {
+  const { webhookUrl } = req.body;
+  if (!webhookUrl) {
+    return res.status(400).json({ error: 'Webhook URL is required' });
+  }
+
+  try {
+    const testPayload = {
+      event: 'webhook_test',
+      platform: 'linkedin',
+      timestamp: new Date().toISOString(),
+      message: 'Test message from SynQ Social Content Bot. Your webhook is connected correctly!',
+      article: {
+        id: 'art_test',
+        title: 'Connecting the Dots: Authentic Digital Spaces',
+        content: 'This is a test of the SynQ Social automated publishing webhook. When you publish an article, its full content and formatted social text will be sent here.',
+        status: 'draft',
+        keywords: ['decentralized social network', 'privacy chat app']
+      },
+      socialText: "Connecting the Dots: Authentic Digital Spaces\n\nThis is a test of the SynQ Social automated publishing webhook. When you publish an article, its full content and formatted social text will be sent here."
+    };
+
+    const response = await fetch(webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(testPayload)
+    });
+
+    if (response.ok) {
+      res.json({ success: true, status: response.status });
+    } else {
+      res.status(response.status).json({ 
+        error: `Webhook returned status ${response.status} ${response.statusText}`
+      });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 3. Articles management CRUD
 app.get('/api/articles', (req, res) => {
   res.json(db.getArticles());
@@ -248,31 +288,53 @@ app.post('/api/articles/:id/publish', async (req, res) => {
   });
 
   const config = db.getConfig();
-  
+  let webhookStatus = { triggered: false, success: false, error: null };
+
   // If a webhook URL is configured, trigger it
   if (config.webhookUrl) {
+    webhookStatus.triggered = true;
     try {
-      // Fire and forget or quick wait
-      await fetch(config.webhookUrl, {
+      // Prepare a clean text version of the post for social media (stripping markdown)
+      const cleanBody = updated.content
+        .replace(/^#\s+.+$/gm, '') // Remove top level title if present
+        .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
+        .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
+        .replace(/\*(.+?)\*/g, '$1') // Remove italics
+        .trim();
+      const socialText = `${updated.title}\n\n${cleanBody}`;
+
+      const response = await fetch(config.webhookUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           event: 'article_published',
           platform: 'linkedin',
           timestamp: new Date().toISOString(),
-          article: updated
+          article: updated,
+          socialText: socialText
         })
       });
-      console.log(`Webhook triggered successfully for article: ${article.id}`);
+
+      if (response.ok) {
+        webhookStatus.success = true;
+        console.log(`Webhook triggered successfully for article: ${article.id}`);
+      } else {
+        webhookStatus.error = `Webhook returned status ${response.status} ${response.statusText}`;
+        console.error(`Webhook returned error status ${response.status} for article: ${article.id}`);
+      }
     } catch (err) {
       console.error('Webhook execution failed:', err.message);
+      webhookStatus.error = err.message;
     }
   }
 
   res.json({
     success: true,
     article: updated,
-    message: 'Published successfully to mock LinkedIn feed!'
+    webhookStatus,
+    message: webhookStatus.triggered 
+      ? (webhookStatus.success ? 'Published successfully and webhook triggered!' : `Published locally, but webhook failed: ${webhookStatus.error}`)
+      : 'Published successfully to mock LinkedIn feed!'
   });
 });
 

@@ -686,10 +686,22 @@ async function handleConfirmPublish() {
       
       closePublishModal();
       await refreshLibrary();
-      showToast('Published successfully to LinkedIn!', 'success');
+      
+      if (data.webhookStatus && data.webhookStatus.triggered) {
+        if (data.webhookStatus.success) {
+          showToast('Published successfully! LinkedIn webhook triggered.', 'success');
+        } else {
+          showToast(`Published locally, but webhook failed: ${data.webhookStatus.error}`, 'error');
+        }
+      } else {
+        showToast('Published successfully to LinkedIn (mock mode, no webhook URL).', 'success');
+      }
       
       // Trigger celebrate confetti!
       triggerConfetti();
+    } else {
+      const errData = await res.json();
+      showToast(errData.error || 'Error publishing article.', 'error');
     }
   } catch (err) {
     showToast('Error publishing article to social webhook.', 'error');
@@ -730,6 +742,39 @@ async function handleSaveSettings() {
     }
   } catch (err) {
     showToast('Failed to save settings.', 'error');
+  }
+}
+
+async function handleTestWebhook() {
+  const webhookUrl = document.getElementById('settings-webhook-url').value.trim();
+  if (!webhookUrl) {
+    showToast('Please enter a Webhook URL to test.', 'warning');
+    return;
+  }
+
+  const testBtn = document.getElementById('btn-test-webhook');
+  const originalText = testBtn.innerHTML;
+  testBtn.disabled = true;
+  testBtn.innerHTML = '<i class="loading-spinner-inline" style="display:inline-block; width:10px; height:10px; border:2px solid #fff; border-top-color:transparent; border-radius:50%; animation:spin 1s linear infinite; margin-right:6px;"></i> Testing...';
+
+  try {
+    const res = await fetch('/api/config/test-webhook', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ webhookUrl })
+    });
+
+    if (res.ok) {
+      showToast('Webhook integration test succeeded!', 'success');
+    } else {
+      const errData = await res.json();
+      showToast(`Webhook test failed: ${errData.error || res.statusText}`, 'error');
+    }
+  } catch (err) {
+    showToast(`Webhook test failed: ${err.message}`, 'error');
+  } finally {
+    testBtn.disabled = false;
+    testBtn.innerHTML = originalText;
   }
 }
 
@@ -953,6 +998,24 @@ function setupEventListeners() {
 
   // Settings Actions
   document.getElementById('btn-save-settings').addEventListener('click', handleSaveSettings);
+  document.getElementById('btn-test-webhook').addEventListener('click', handleTestWebhook);
+
+  // Webhook guide toggle
+  const toggleBtn = document.getElementById('toggle-webhook-schema');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const content = document.getElementById('webhook-schema-content');
+      const chevron = document.getElementById('schema-chevron');
+      if (content && chevron) {
+        content.classList.toggle('hidden');
+        if (content.classList.contains('hidden')) {
+          chevron.style.transform = 'rotate(0deg)';
+        } else {
+          chevron.style.transform = 'rotate(180deg)';
+        }
+      }
+    });
+  }
 
   // Profile fields sync on typing
   document.getElementById('settings-author-name').addEventListener('input', (e) => {

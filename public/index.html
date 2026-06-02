@@ -261,8 +261,42 @@
 
               <div class="form-group">
                 <label for="settings-webhook-url">Mock Publish Webhook URL</label>
-                <input type="text" id="settings-webhook-url" placeholder="e.g. https://hooks.zapier.com/hooks/catch/...">
+                <div class="webhook-input-group" style="display: flex; gap: 10px; align-items: stretch;">
+                  <input type="text" id="settings-webhook-url" placeholder="e.g. https://hooks.zapier.com/hooks/catch/..." style="flex: 1; margin-bottom: 0;">
+                  <button class="btn btn-secondary" id="btn-test-webhook" style="width: auto; padding: 0 20px; white-space: nowrap; height: auto; display: flex; align-items: center; justify-content: center;">
+                    <i data-lucide="send" style="width: 14px; height: 14px; margin-right: 6px;"></i> Test
+                  </button>
+                </div>
                 <p class="help-text">Optional. If provided, hits this URL with article details when published.</p>
+
+                <!-- Webhook Payload Schema Guide -->
+                <div class="webhook-guide-card" style="margin-top: 14px; background: rgba(138, 75, 243, 0.03); border: 1px dashed rgba(138, 75, 243, 0.2); border-radius: 8px; padding: 12px; transition: var(--transition-fast);">
+                  <div class="webhook-guide-toggle" id="toggle-webhook-schema" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; user-select: none;">
+                    <span style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;">
+                      <i data-lucide="help-circle" style="width: 14px; height: 14px; color: var(--color-primary);"></i>
+                      Webhook Payload Schema Guide
+                    </span>
+                    <i data-lucide="chevron-down" id="schema-chevron" style="width: 14px; height: 14px; transition: transform var(--transition-fast);"></i>
+                  </div>
+                  <div class="webhook-guide-content hidden" id="webhook-schema-content" style="margin-top: 10px; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(138, 75, 243, 0.1); padding-top: 10px;">
+                    <p style="margin-bottom: 8px;">Your webhook receives a <code>POST</code> request with a JSON payload when you publish an article. Here is the JSON schema:</p>
+                    <pre style="background: rgba(0, 0, 0, 0.4); padding: 10px; border-radius: 6px; font-family: var(--font-mono); overflow-x: auto; border: 1px solid rgba(255,255,255,0.05); color: #a78bfa; margin-top: 6px; line-height: 1.4;">{
+  "event": "article_published",
+  "platform": "linkedin",
+  "timestamp": "2026-06-02T10:36:32.123Z",
+  "socialText": "Article Title\n\nArticle body ready to publish...",
+  "article": {
+    "id": "art_1780051364221",
+    "title": "Article Title",
+    "content": "Full markdown content...",
+    "status": "published",
+    "keywords": ["decentralized social", ...],
+    "createdAt": "...",
+    "updatedAt": "..."
+  }
+}</pre>
+                  </div>
+                </div>
               </div>
 
               <button class="btn btn-primary" id="btn-save-settings">Save Settings</button>
