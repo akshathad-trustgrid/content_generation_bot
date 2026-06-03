@@ -89,38 +89,151 @@
 
         <!-- TAB 1: GENERATOR -->
         <section class="tab-content active" id="tab-generator">
+          
+          <!-- Workflow Steps Header -->
+          <div class="workflow-steps card">
+            <div class="step-item active" id="step-1-indicator">
+              <div class="step-num">1</div>
+              <div class="step-label">Setup & Intent</div>
+            </div>
+            <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
+            <div class="step-item" id="step-2-indicator">
+              <div class="step-num">2</div>
+              <div class="step-label">SEO Outline</div>
+            </div>
+            <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
+            <div class="step-item" id="step-3-indicator">
+              <div class="step-num">3</div>
+              <div class="step-label">Content Writing</div>
+            </div>
+            <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
+            <div class="step-item" id="step-4-indicator">
+              <div class="step-num">4</div>
+              <div class="step-label">SEO Audit</div>
+            </div>
+            <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
+            <div class="step-item" id="step-5-indicator">
+              <div class="step-num">5</div>
+              <div class="step-label">Publish</div>
+            </div>
+          </div>
+
           <div class="generator-layout">
             
-            <!-- Left panel: Form parameters -->
-            <div class="generator-params card">
-              <h2 class="card-title"><i data-lucide="sliders"></i> Parameters</h2>
+            <!-- Left panel: Parameter Form & Outline Editor (Wizard Step 1 & 2) -->
+            <div class="generator-sidebar-left">
               
-              <div class="form-group">
-                <label for="prompt-input">What's the theme or core topic?</label>
-                <textarea id="prompt-input" placeholder="e.g., How Instagram exploits our dopamine loops, and why a human-first platform like SynQ Social gives ownership back..." rows="4"></textarea>
+              <!-- STEP 1 PANEL: Parameters -->
+              <div class="generator-params card" id="panel-step-1">
+                <h2 class="card-title"><i data-lucide="sliders"></i> 1. Input Layer</h2>
+                
+                <div class="form-group">
+                  <label for="seo-primary-keyword">Primary Keyword *</label>
+                  <input type="text" id="seo-primary-keyword" placeholder="e.g. decentralized social media" required>
+                </div>
+
+                <div class="form-group">
+                  <label for="seo-secondary-keywords">Secondary Keywords</label>
+                  <input type="text" id="seo-secondary-keywords" placeholder="e.g. privacy network, ad-free social (comma-separated)">
+                </div>
+
+                <div class="form-group">
+                  <label for="seo-target-audience">Target Audience</label>
+                  <input type="text" id="seo-target-audience" value="Gen Z, Digital Natives">
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 10px;">
+                  <div class="form-group" style="flex: 1;">
+                    <label for="seo-intent-type">Search Intent Type</label>
+                    <select id="seo-intent-type" style="width: 100%;">
+                      <option value="Informational">Informational</option>
+                      <option value="Commercial">Commercial</option>
+                      <option value="Transactional">Transactional</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1;">
+                    <label for="seo-intent-goal">Search Intent Goal</label>
+                    <input type="text" id="seo-intent-goal" value="Teach" readonly style="width: 100%;">
+                  </div>
+                </div>
+
+                <div class="form-row" style="display: flex; gap: 10px;">
+                  <div class="form-group" style="flex: 1;">
+                    <label for="seo-content-type">Content Type</label>
+                    <select id="seo-content-type" style="width: 100%;">
+                      <option value="Blog Post">Blog Post</option>
+                      <option value="Thought Leadership">Thought Leadership</option>
+                      <option value="Review Guide">Review Guide</option>
+                      <option value="Social Article">Social Article</option>
+                    </select>
+                  </div>
+                  <div class="form-group" style="flex: 1;">
+                    <label for="seo-target-country">Target Country</label>
+                    <input type="text" id="seo-target-country" value="United States" style="width: 100%;">
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="seo-competitor-urls">Competitor URLs (One per line)</label>
+                  <textarea id="seo-competitor-urls" placeholder="e.g., https://competitor1.com/post" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="seo-brand-tone">Brand Tone</label>
+                  <input type="text" id="seo-brand-tone" value="Philosophical, Youthful, Rebellious">
+                </div>
+
+                <button class="btn btn-primary btn-generate" id="btn-plan-outline" style="width: 100%;">
+                  <i data-lucide="compass"></i>
+                  <span>1. Detect Intent & Plan Outline</span>
+                </button>
               </div>
 
-              <div class="form-group">
-                <label>Select Target Keywords</label>
-                <div class="keyword-selector-box">
-                  <div class="keyword-selector-header">
-                    <span class="selected-count" id="kw-selected-count">0 selected</span>
-                    <button class="clear-btn" id="kw-clear-all">Clear All</button>
-                  </div>
-                  <div class="keyword-categories" id="keywords-accordion">
+              <!-- STEP 2 PANEL: Outline Approval -->
+              <div class="outline-approval card hidden" id="panel-step-2">
+                <h2 class="card-title"><i data-lucide="list-checks"></i> 2. SEO Content Structure</h2>
+                <p class="section-desc" style="margin-bottom: 12px; font-size: 11px;">Review target intent, generated semantic keywords, and refine the outline structure below.</p>
+                
+                <div class="intent-badge-group" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                  <span class="badge badge-primary" id="detected-intent-badge" style="background: rgba(139, 92, 246, 0.2); color: #c084fc; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid rgba(139, 92, 246, 0.4);">Intent: Informational</span>
+                  <span class="badge badge-secondary" id="detected-goal-badge" style="background: rgba(8, 145, 178, 0.2); color: #22d3ee; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid rgba(8, 145, 178, 0.4);">Goal: Teach</span>
+                </div>
+
+                <div class="form-group">
+                  <label>Suggested Semantic Keywords (NLP)</label>
+                  <div class="semantic-tags-container" id="semantic-keywords-tags" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); min-height: 40px;">
                     <!-- Loaded dynamically -->
-                    <div class="loading-spinner">Loading keywords...</div>
                   </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="outline-title-suggestion">Suggested SEO Title</label>
+                  <input type="text" id="outline-title-suggestion" placeholder="SEO Optimized Title">
+                </div>
+
+                <div class="form-group">
+                  <label for="outline-meta-suggestion">Suggested Meta Description</label>
+                  <textarea id="outline-meta-suggestion" placeholder="SEO Optimized Meta Description" rows="2"></textarea>
+                </div>
+
+                <div class="form-group">
+                  <label for="outline-structure-editor">Outline Structure (Markdown)</label>
+                  <textarea id="outline-structure-editor" placeholder="Outline Structure" rows="8"></textarea>
+                </div>
+
+                <div class="outline-nav-actions" style="display: flex; gap: 10px; margin-top: 15px;">
+                  <button class="btn btn-secondary" id="btn-back-to-step-1" style="flex: 1;">
+                    <i data-lucide="arrow-left"></i> Back
+                  </button>
+                  <button class="btn btn-primary" id="btn-approve-outline" style="flex: 1.5;">
+                    <span>2. Generate Content</span> <i data-lucide="arrow-right"></i>
+                  </button>
                 </div>
               </div>
 
-              <button class="btn btn-primary btn-generate" id="btn-generate-article">
-                <i data-lucide="wand2"></i>
-                <span>Generate Article</span>
-              </button>
             </div>
 
-            <!-- Center panel: Text editor & live preview -->
+            <!-- Center panel: Text editor & live preview (Wizard Step 3 & 4) -->
             <div class="generator-workspace">
               
               <div class="workspace-header card">
@@ -159,7 +272,7 @@
                     <i data-lucide="pen-tool"></i>
                   </div>
                   <h3>Your Creative Workspace</h3>
-                  <p>Enter a topic prompt on the left, select your target keywords, and click Generate. Your article will appear here in real-time, matching SynQ's rebellious, philosophical tone.</p>
+                  <p>Begin by filling out the SEO input layer parameters on the left and clicking "Detect Intent & Plan Outline". The wizard will guide you to generating and auditing your content.</p>
                 </div>
 
                 <!-- Active Editor Textarea -->
@@ -197,23 +310,145 @@
               </div>
             </div>
 
-            <!-- Right panel: Live Keywords tracker -->
-            <div class="generator-keywords card">
-              <h2 class="card-title"><i data-lucide="target"></i> SEO Keywords Tracker</h2>
-              <p class="section-desc">Instantly matches text inside the editor. Click on a keyword to copy or insert.</p>
+            <!-- Right panel: SEO Audit Score Dashboard -->
+            <div class="generator-keywords card" id="seo-audit-sidebar">
+              <h2 class="card-title"><i data-lucide="target"></i> SEO Audit Dashboard</h2>
+              <p class="section-desc">Automated heuristics checks running live on your editor content.</p>
               
-              <div class="keyword-progress">
-                <div class="kprogress-bar">
-                  <div class="kprogress-fill" id="kw-tracker-progress" style="width: 0%"></div>
+              <!-- Audit Score Ring -->
+              <div class="seo-score-container" style="display: flex; align-items: center; gap: 15px; margin: 15px 0; background: rgba(0,0,0,0.2); padding: 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                <div class="seo-score-ring-wrap" style="position: relative; width: 60px; height: 60px;">
+                  <svg class="seo-score-svg" viewBox="0 0 100 100" style="transform: rotate(-90deg); width: 100%; height: 100%;">
+                    <circle class="score-ring-bg" cx="50" cy="50" r="40" style="fill: transparent; stroke: rgba(255,255,255,0.05); stroke-width: 8;"></circle>
+                    <circle class="score-ring-fill" id="seo-score-fill" cx="50" cy="50" r="40" stroke-dasharray="251.2" stroke-dashoffset="251.2" style="fill: transparent; stroke: var(--color-accent); stroke-width: 8; stroke-linecap: round; transition: stroke-dashoffset 0.4s ease;"></circle>
+                  </svg>
+                  <div class="seo-score-value" id="seo-score-text" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-family: var(--font-outfit); font-size: 14px; font-weight: 700; color: #fff;">0%</div>
                 </div>
-                <div class="kprogress-lbl">
-                  <span id="kw-tracker-matched">0</span> / <span id="kw-tracker-total">0</span> target keywords matched
+                <div>
+                  <div class="seo-score-summary" id="seo-score-status" style="font-family: var(--font-outfit); font-weight: 600; font-size: 13px; color: #fff;">Needs Content</div>
+                  <p class="text-muted" style="font-size: 11px; margin-top: 2px;">Keep writing to optimize</p>
                 </div>
               </div>
 
-              <div class="tracker-keyword-list" id="tracker-keywords-container">
-                <!-- Loaded dynamically -->
-                <div class="text-muted text-center" style="padding: 20px 0;">No target keywords selected.</div>
+              <!-- Audit Categories Accordion -->
+              <div class="audit-accordion" style="display: flex; flex-direction: column; gap: 8px;">
+                
+                <!-- A. Title Check -->
+                <div class="audit-item" id="audit-title">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="type" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Title Optimization</span>
+                    <span class="audit-status-icon success" id="status-title" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                      <li id="rule-title-keyword" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Primary keyword included</li>
+                      <li id="rule-title-length" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> 50–60 characters (<span id="title-char-count">0</span> chars)</li>
+                      <li id="rule-title-trigger" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> CTR / Emotional words (e.g. Best, Reclaim, Future)</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- B. Meta Description Check -->
+                <div class="audit-item" id="audit-meta">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Meta Description</span>
+                    <span class="audit-status-icon success" id="status-meta" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <div class="meta-desc-display" id="meta-desc-text" style="font-size: 10px; font-family: var(--font-mono); color: var(--text-dim); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin-bottom: 8px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.05); overflow-wrap: break-word;">No meta description found.</div>
+                    <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                      <li id="rule-meta-length" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> 140–160 characters (<span id="meta-char-count">0</span> chars)</li>
+                      <li id="rule-meta-keyword" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Keyword included</li>
+                      <li id="rule-meta-cta" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> CTA included (e.g. read, learn, join)</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- C. Heading Structure Check -->
+                <div class="audit-item" id="audit-headings">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Heading Structure</span>
+                    <span class="audit-status-icon success" id="status-headings" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                      <li id="rule-heading-h1" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Exactly 1 H1 (<span id="count-h1">0</span>)</li>
+                      <li id="rule-heading-hierarchy" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Proper H2/H3 nesting</li>
+                      <li id="rule-heading-questions" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Question headings present</li>
+                      <li id="rule-heading-keyword" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Keyword in headings</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- D. Keyword Optimization -->
+                <div class="audit-item" id="audit-keywords">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="key-round" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Keyword Density</span>
+                    <span class="audit-status-icon success" id="status-keywords" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <div class="density-stats" style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between;">
+                      <span>Primary: <strong id="density-primary-val" style="color:#fff;">0%</strong></span>
+                      <span class="text-muted">Target: 1.0% - 2.0%</span>
+                    </div>
+                    <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                      <li id="rule-keyword-density" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Density between 1–2%</li>
+                      <li id="rule-keyword-secondary" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Secondary keywords naturally present</li>
+                      <li id="rule-keyword-stuffing" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Avoid stuffing (&lt; 3.5% density)</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <!-- E. Semantic SEO Optimization -->
+                <div class="audit-item" id="audit-semantic">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="git-branch" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Semantic SEO (NLP)</span>
+                    <span class="audit-status-icon success" id="status-semantic" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <p style="font-size: 10px; margin-bottom: 6px;" class="text-muted">Incorporate suggested terms into the post body:</p>
+                    <div class="semantic-checklist" id="semantic-audit-list" style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto; padding-right: 5px;">
+                      <!-- Dynamically loaded NLP terms -->
+                      <span class="text-muted" style="font-size: 10px;">Select keywords first.</span>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- F. Readability Check -->
+                <div class="audit-item" id="audit-readability">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="eye" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Readability</span>
+                    <span class="audit-status-icon success" id="status-readability" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                      <li id="rule-read-sentence" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Sentences &lt; 20 words (Avg: <span id="sentence-length-val">0</span>)</li>
+                      <li id="rule-read-paragraph" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Paragraphs 2–3 lines avg</li>
+                      <li id="rule-read-transitions" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Transition words included</li>
+                      <li id="rule-read-human" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Brand/Human voice (No AI clichés)</li>
+                    </ul>
+                    <div class="ai-phrase-warnings hidden" id="ai-phrase-warnings-box" style="margin-top: 10px; background: rgba(239, 68, 68, 0.05); border: 1px solid rgba(239, 68, 68, 0.2); border-radius: 6px; padding: 8px;">
+                      <p style="font-size: 10px; font-weight: 600; color: #ef4444; margin-bottom: 4px;">Robotic AI Terms Flagged:</p>
+                      <div id="ai-phrase-list" style="font-size: 9px; color: #f87171; line-height: 1.4; display: flex; flex-wrap: wrap; gap: 4px;"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- G. EEAT & Freshness -->
+                <div class="audit-item" id="audit-eeat">
+                  <div class="audit-item-header" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer; padding: 10px; background: rgba(255,255,255,0.02); border-radius: 6px; border: 1px solid rgba(255,255,255,0.03);">
+                    <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="award" style="width: 14px; height: 14px; color: var(--color-primary);"></i> EEAT & Freshness</span>
+                    <span class="audit-status-icon success" id="status-eeat" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
+                  </div>
+                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                    <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
+                      <li id="rule-eeat-stats" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Includes statistics (%)</li>
+                      <li id="rule-eeat-examples" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Real-world examples / quotes</li>
+                      <li id="rule-eeat-year" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Fresh data (Year 2026 referenced)</li>
+                    </ul>
+                  </div>
+                </div>
+
               </div>
             </div>
 

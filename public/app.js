@@ -5,6 +5,7 @@
 // Global Application State
 const state = {
   currentTab: 'generator',
+  currentStep: 1,
   config: {
     ollamaUrl: 'http://localhost:11434',
     model: 'llama3.2:3b',
@@ -16,7 +17,26 @@ const state = {
   selectedKeywords: new Set(),
   activeArticle: null, // Currently loaded article in workspace
   editorMode: 'edit', // 'edit' or 'preview'
-  articles: [] // Loaded from DB
+  articles: [], // Loaded from DB
+  seoMetadata: {
+    primaryKeyword: '',
+    secondaryKeywords: [],
+    targetAudience: 'Gen Z, Digital Natives',
+    searchIntent: 'Informational',
+    contentType: 'Blog Post',
+    targetCountry: 'United States',
+    competitorUrls: [],
+    brandTone: 'Philosophical, Youthful, Rebellious'
+  },
+  outline: null,
+  detectedIntent: { type: 'Informational', goal: 'Teach' },
+  semanticKeywords: []
+};
+
+const intentGoals = {
+  Informational: 'Teach',
+  Commercial: 'Compare',
+  Transactional: 'Convert'
 };
 
 // Inspiring quotes to cycle through during loading overlay
@@ -34,10 +54,12 @@ let quoteInterval = null;
 document.addEventListener('DOMContentLoaded', async () => {
   initLucide();
   await loadConfig();
-  await loadKeywords();
   await refreshLibrary();
   setupEventListeners();
   updateStats();
+  
+  // Set to initial step
+  setStep(1);
 });
 
 // Init Lucide Icons
@@ -79,18 +101,6 @@ function applyConfigToUI() {
   document.getElementById('aps-preview-title').innerText = state.config.authorTitle;
 }
 
-async function loadKeywords() {
-  try {
-    const res = await fetch('/api/keywords');
-    if (res.ok) {
-      state.keywords = await res.json();
-      renderKeywordSelectors();
-    }
-  } catch (err) {
-    showToast('Failed to fetch SEO keywords.', 'error');
-  }
-}
-
 async function refreshLibrary() {
   try {
     const res = await fetch('/api/articles');
@@ -102,129 +112,6 @@ async function refreshLibrary() {
   } catch (err) {
     showToast('Failed to sync library drafts.', 'error');
   }
-}
-
-// --------------------------------------------------------------------------
-// KEYWORDS ACCORDION & CHECKBOX SELECTORS
-// --------------------------------------------------------------------------
-
-function renderKeywordSelectors() {
-  const container = document.getElementById('keywords-accordion');
-  container.innerHTML = '';
-
-  const categories = [
-    { key: 'decentralized', label: 'Decentralized Social / Web3' },
-    { key: 'privacy', label: 'Privacy & Secure Chat' },
-    { key: 'alternatives', label: 'Platform Alternatives' }
-  ];
-
-  categories.forEach(cat => {
-    const section = document.createElement('div');
-    section.className = 'kw-cat-section';
-
-    // Header
-    const header = document.createElement('div');
-    header.className = 'kw-cat-header';
-    header.innerHTML = `<span>${cat.label}</span> <i data-lucide="chevron-down"></i>`;
-    header.addEventListener('click', () => {
-      header.classList.toggle('collapsed');
-      list.classList.toggle('collapsed');
-    });
-
-    // Checklist
-    const list = document.createElement('div');
-    list.className = 'kw-cat-list';
-    
-    // Add keywords
-    const keywordsList = state.keywords[cat.key] || [];
-    keywordsList.forEach(kw => {
-      const label = document.createElement('label');
-      label.className = 'kw-item-checkbox';
-      
-      const checkbox = document.createElement('input');
-      checkbox.type = 'checkbox';
-      checkbox.value = kw;
-      checkbox.addEventListener('change', (e) => {
-        if (e.target.checked) {
-          state.selectedKeywords.add(kw);
-        } else {
-          state.selectedKeywords.delete(kw);
-        }
-        updateSelectedKeywordsCount();
-        updateKeywordTracker();
-      });
-
-      label.appendChild(checkbox);
-      label.appendChild(document.createTextNode(` ${kw}`));
-      list.appendChild(label);
-    });
-
-    section.appendChild(header);
-    section.appendChild(list);
-    container.appendChild(section);
-  });
-
-  initLucide();
-}
-
-function updateSelectedKeywordsCount() {
-  const countSpan = document.getElementById('kw-selected-count');
-  countSpan.innerText = `${state.selectedKeywords.size} selected`;
-}
-
-// --------------------------------------------------------------------------
-// LIVE KEYWORD COVERAGE TRACKER (RIGHT SIDEBAR)
-// --------------------------------------------------------------------------
-
-function updateKeywordTracker() {
-  const container = document.getElementById('tracker-keywords-container');
-  const countMatched = document.getElementById('kw-tracker-matched');
-  const countTotal = document.getElementById('kw-tracker-total');
-  const progressBar = document.getElementById('kw-tracker-progress');
-
-  if (state.selectedKeywords.size === 0) {
-    container.innerHTML = `<div class="text-muted text-center" style="padding: 20px 0;">No target keywords selected.</div>`;
-    countMatched.innerText = '0';
-    countTotal.innerText = '0';
-    progressBar.style.width = '0%';
-    return;
-  }
-
-  container.innerHTML = '';
-  
-  // Get text content of active editor
-  const text = document.getElementById('article-editor-textarea').value.toLowerCase();
-  let matchedCount = 0;
-
-  state.selectedKeywords.forEach(kw => {
-    const isMatched = text.includes(kw.toLowerCase());
-    if (isMatched) matchedCount++;
-
-    const item = document.createElement('div');
-    item.className = `tracker-kw-item ${isMatched ? 'matched' : 'unmatched'}`;
-    item.innerHTML = `
-      <span>${kw}</span>
-      <i data-lucide="${isMatched ? 'check-circle' : 'circle'}"></i>
-    `;
-    
-    // Quick copy helper on click
-    item.addEventListener('click', () => {
-      navigator.clipboard.writeText(kw);
-      showToast(`Copied "${kw}" to clipboard!`);
-    });
-
-    container.appendChild(item);
-  });
-
-  countMatched.innerText = matchedCount;
-  countTotal.innerText = state.selectedKeywords.size;
-  
-  const percentage = Math.round((matchedCount / state.selectedKeywords.size) * 100);
-  progressBar.style.width = `${percentage}%`;
-
-  // Update top bar stat as well
-  document.getElementById('stats-keywords').innerText = `${percentage}%`;
-  initLucide();
 }
 
 // --------------------------------------------------------------------------
@@ -322,20 +209,30 @@ function loadArticleIntoWorkspace(article) {
   setEditorMode('edit');
   updateWordCount();
 
-  // Reset selected keywords and select keywords from database
-  state.selectedKeywords.clear();
-  // Clear HTML checkboxes
-  const checkBoxes = document.querySelectorAll('#keywords-accordion input[type="checkbox"]');
-  checkBoxes.forEach(cb => {
-    cb.checked = false;
-    if (article.keywords && article.keywords.includes(cb.value)) {
-      cb.checked = true;
-      state.selectedKeywords.add(cb.value);
-    }
-  });
+  // Reset state parameters from loaded article
+  state.seoMetadata = article.seoMetadata || {
+    primaryKeyword: article.title || '',
+    secondaryKeywords: article.keywords || [],
+    targetAudience: 'Gen Z, Digital Natives',
+    searchIntent: 'Informational',
+    contentType: 'Blog Post',
+    targetCountry: 'United States',
+    competitorUrls: [],
+    brandTone: 'Philosophical, Youthful, Rebellious'
+  };
+  state.outline = article.outline || null;
+  state.semanticKeywords = (article.outline && article.outline.semanticKeywords) || article.keywords || [];
 
-  updateSelectedKeywordsCount();
-  updateKeywordTracker();
+  // Update Step 1 form fields to match loaded article if user navigates back
+  document.getElementById('seo-primary-keyword').value = state.seoMetadata.primaryKeyword;
+  document.getElementById('seo-secondary-keywords').value = state.seoMetadata.secondaryKeywords.join(', ');
+  document.getElementById('seo-target-audience').value = state.seoMetadata.targetAudience;
+  document.getElementById('seo-intent-type').value = state.seoMetadata.searchIntent;
+  document.getElementById('seo-intent-goal').value = intentGoals[state.seoMetadata.searchIntent] || 'Teach';
+  document.getElementById('seo-content-type').value = state.seoMetadata.contentType;
+  document.getElementById('seo-target-country').value = state.seoMetadata.targetCountry;
+  document.getElementById('seo-competitor-urls').value = state.seoMetadata.competitorUrls.join('\n');
+  document.getElementById('seo-brand-tone').value = state.seoMetadata.brandTone;
 
   // Show refinement panel
   document.getElementById('refinement-container').classList.remove('hidden');
@@ -403,30 +300,169 @@ function stopLoadingOverlay() {
 // APP CONTROLLER EVENT ACTIONS
 // --------------------------------------------------------------------------
 
-async function handleGenerateArticle() {
-  const prompt = document.getElementById('prompt-input').value.trim();
-  if (!prompt) {
-    showToast('Please specify a theme prompt.', 'warning');
-    return;
+// --------------------------------------------------------------------------
+// AI WIZARD & SEO AUDITOR ACTIONS
+// --------------------------------------------------------------------------
+
+function setStep(stepNum) {
+  state.currentStep = stepNum;
+  
+  // Update step indicators
+  for (let i = 1; i <= 5; i++) {
+    const indicator = document.getElementById(`step-${i}-indicator`);
+    if (!indicator) continue;
+    
+    indicator.classList.remove('active', 'completed');
+    if (i < stepNum) {
+      indicator.classList.add('completed');
+    } else if (i === stepNum) {
+      indicator.classList.add('active');
+    }
   }
 
-  // Clear workspace for fresh generation
-  document.getElementById('article-title-input').value = 'Weaving content...';
-  document.getElementById('article-editor-textarea').value = '';
-  document.getElementById('editor-empty').classList.add('hidden');
-  document.getElementById('editor-wrapper').classList.remove('hidden');
-  document.getElementById('refinement-container').classList.add('hidden');
-  updateWordCount();
+  // Toggle Left Panels
+  const panelStep1 = document.getElementById('panel-step-1');
+  const panelStep2 = document.getElementById('panel-step-2');
+  const sidebarLeft = document.querySelector('.generator-sidebar-left');
+  
+  if (stepNum === 1) {
+    if (sidebarLeft) sidebarLeft.classList.remove('hidden');
+    if (panelStep1) panelStep1.classList.remove('hidden');
+    if (panelStep2) panelStep2.classList.add('hidden');
+    
+    document.getElementById('editor-empty').classList.remove('hidden');
+    document.getElementById('editor-wrapper').classList.add('hidden');
+    document.getElementById('seo-audit-sidebar').classList.add('hidden');
+    document.getElementById('refinement-container').classList.add('hidden');
+  } else if (stepNum === 2) {
+    if (sidebarLeft) sidebarLeft.classList.remove('hidden');
+    if (panelStep1) panelStep1.classList.add('hidden');
+    if (panelStep2) panelStep2.classList.remove('hidden');
+    
+    document.getElementById('editor-empty').classList.remove('hidden');
+    document.getElementById('editor-wrapper').classList.add('hidden');
+    document.getElementById('seo-audit-sidebar').classList.add('hidden');
+    document.getElementById('refinement-container').classList.add('hidden');
+  } else if (stepNum === 3) {
+    if (sidebarLeft) sidebarLeft.classList.add('hidden');
+    
+    document.getElementById('editor-empty').classList.add('hidden');
+    document.getElementById('editor-wrapper').classList.remove('hidden');
+    document.getElementById('seo-audit-sidebar').classList.add('hidden');
+    document.getElementById('refinement-container').classList.add('hidden');
+  } else if (stepNum === 4) {
+    if (sidebarLeft) sidebarLeft.classList.add('hidden');
+    
+    document.getElementById('editor-empty').classList.add('hidden');
+    document.getElementById('editor-wrapper').classList.remove('hidden');
+    document.getElementById('seo-audit-sidebar').classList.remove('hidden');
+    document.getElementById('refinement-container').classList.remove('hidden');
+    
+    // Trigger SEO Audit
+    runSeoAudit();
+  } else if (stepNum === 5) {
+    openPublishModal();
+  }
+}
 
-  startLoadingOverlay('Consulting Ollama Llama 3.2...');
+async function handlePlanOutline() {
+  const primaryKeyword = document.getElementById('seo-primary-keyword').value.trim();
+  if (!primaryKeyword) {
+    showToast('Primary Keyword is required.', 'warning');
+    return;
+  }
+  
+  const secondaryKeywords = document.getElementById('seo-secondary-keywords').value.split(',').map(s => s.trim()).filter(Boolean);
+  const targetAudience = document.getElementById('seo-target-audience').value.trim();
+  const searchIntent = document.getElementById('seo-intent-type').value;
+  const contentType = document.getElementById('seo-content-type').value;
+  const targetCountry = document.getElementById('seo-target-country').value.trim();
+  const competitorUrls = document.getElementById('seo-competitor-urls').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const brandTone = document.getElementById('seo-brand-tone').value.trim();
 
+  state.seoMetadata = {
+    primaryKeyword,
+    secondaryKeywords,
+    targetAudience,
+    searchIntent,
+    contentType,
+    targetCountry,
+    competitorUrls,
+    brandTone
+  };
+
+  startLoadingOverlay('Detecting Search Intent & Planning Outline...');
+
+  try {
+    const res = await fetch('/api/articles/plan-outline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seoMetadata: state.seoMetadata })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Outline planning failed: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    
+    state.outline = data.outline;
+    state.detectedIntent = data.detectedIntent;
+    state.semanticKeywords = data.semanticKeywords || [];
+    
+    // Populate Outline approval panel fields
+    document.getElementById('detected-intent-badge').innerText = `Intent: ${data.detectedIntent.type}`;
+    document.getElementById('detected-goal-badge').innerText = `Goal: ${data.detectedIntent.goal}`;
+    
+    const tagContainer = document.getElementById('semantic-keywords-tags');
+    tagContainer.innerHTML = '';
+    state.semanticKeywords.forEach(kw => {
+      const tag = document.createElement('span');
+      tag.className = 'semantic-tag';
+      tag.innerText = kw;
+      tag.title = 'Click to copy';
+      tag.addEventListener('click', () => {
+        navigator.clipboard.writeText(kw);
+        showToast(`Copied NLP term: "${kw}"`);
+      });
+      tagContainer.appendChild(tag);
+    });
+    
+    document.getElementById('outline-title-suggestion').value = data.outline.title || '';
+    document.getElementById('outline-meta-suggestion').value = data.outline.metaDescription || '';
+    document.getElementById('outline-structure-editor').value = data.outline.structure || '';
+    
+    setStep(2);
+    showToast('Search intent detected and outline planned!', 'success');
+  } catch (err) {
+    showToast(err.message, 'error');
+  } finally {
+    stopLoadingOverlay();
+  }
+}
+
+async function handleApproveAndGenerate() {
+  const title = document.getElementById('outline-title-suggestion').value.trim();
+  const metaDescription = document.getElementById('outline-meta-suggestion').value.trim();
+  const structure = document.getElementById('outline-structure-editor').value.trim();
+  
+  if (!title || !structure) {
+    showToast('Outline Title and Structure are required.', 'warning');
+    return;
+  }
+  
+  state.outline = { title, metaDescription, structure };
+  setStep(3);
+  
+  startLoadingOverlay('Weaving structured SEO article...');
+  
   try {
     const response = await fetch('/api/articles/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        prompt,
-        keywords: Array.from(state.selectedKeywords)
+        seoMetadata: state.seoMetadata,
+        outline: state.outline
       })
     });
 
@@ -445,7 +481,7 @@ async function handleGenerateArticle() {
       
       buffer += decoder.decode(value, { stream: true });
       const lines = buffer.split('\n');
-      buffer = lines.pop(); // Keep last incomplete line in buffer
+      buffer = lines.pop();
 
       for (const line of lines) {
         const cleanLine = line.trim();
@@ -460,42 +496,338 @@ async function handleGenerateArticle() {
             
             if (parsed.text) {
               accumulatedText += parsed.text;
-              // Render title / content splits in real-time
-              const linesSplit = accumulatedText.split('\n');
-              let title = 'Weaving content...';
-              let body = accumulatedText;
-
-              if (linesSplit[0] && linesSplit[0].startsWith('#')) {
-                title = linesSplit[0].replace(/^#\s*/, '').trim();
-                body = linesSplit.slice(1).join('\n').trim();
+              
+              const metaStartTag = '[META_DESCRIPTION_START]';
+              const metaEndTag = '[META_DESCRIPTION_END]';
+              let displayBody = accumulatedText;
+              
+              if (displayBody.includes(metaStartTag) && displayBody.includes(metaEndTag)) {
+                const endIdx = displayBody.indexOf(metaEndTag) + metaEndTag.length;
+                displayBody = displayBody.substring(endIdx).trim();
+              } else if (displayBody.includes(metaStartTag)) {
+                displayBody = displayBody.substring(displayBody.indexOf(metaStartTag)).trim();
               }
               
-              document.getElementById('article-title-input').value = title;
-              document.getElementById('article-editor-textarea').value = body;
+              let displayTitle = state.outline.title;
+              const linesSplit = displayBody.split('\n');
+              if (linesSplit[0] && linesSplit[0].startsWith('#')) {
+                displayTitle = linesSplit[0].replace(/^#\s*/, '').trim();
+                displayBody = linesSplit.slice(1).join('\n').trim();
+              }
+              
+              document.getElementById('article-title-input').value = displayTitle;
+              document.getElementById('article-editor-textarea').value = displayBody;
               updateWordCount();
-              updateKeywordTracker();
             }
 
             if (parsed.done && parsed.article) {
               state.activeArticle = parsed.article;
+              
+              // Load the saved article (loads Step 4 and shows Toast)
               loadArticleIntoWorkspace(parsed.article);
               await refreshLibrary();
-              showToast('Article generated successfully!', 'success');
             }
 
-          } catch (e) {
-            // Json parse error on partial lines
-          }
+          } catch (e) {}
         }
       }
     }
 
   } catch (err) {
     showToast(err.message, 'error');
-    document.getElementById('editor-empty').classList.remove('hidden');
-    document.getElementById('editor-wrapper').classList.add('hidden');
+    setStep(2);
   } finally {
     stopLoadingOverlay();
+  }
+}
+
+function runSeoAudit() {
+  const title = document.getElementById('article-title-input').value.trim();
+  const content = document.getElementById('article-editor-textarea').value;
+  const primaryKeyword = (state.seoMetadata && state.seoMetadata.primaryKeyword) || '';
+  const secondaryKeywords = (state.seoMetadata && state.seoMetadata.secondaryKeywords) || [];
+  const metaDescription = (state.activeArticle && state.activeArticle.metaDescription) || (state.outline && state.outline.metaDescription) || '';
+  
+  if (!content) {
+    updateScoreUI(0, 'Needs Content');
+    return;
+  }
+
+  const words = content.trim().split(/\s+/).filter(Boolean);
+  const wordCount = words.length;
+  if (wordCount === 0) {
+    updateScoreUI(0, 'Needs Content');
+    return;
+  }
+
+  let totalScore = 0;
+
+  const containsAny = (str, list) => list.some(item => str.toLowerCase().includes(item.toLowerCase()));
+  const updateRuleState = (elementId, passed) => {
+    const el = document.getElementById(elementId);
+    if (!el) return;
+    el.className = passed ? 'passed' : 'failed';
+    const icon = el.querySelector('i');
+    if (icon) {
+      icon.setAttribute('data-lucide', passed ? 'check-circle-2' : 'circle');
+    }
+  };
+
+  // 1. Title Check (15 pts)
+  let titleScore = 0;
+  const hasTitleKeyword = primaryKeyword ? title.toLowerCase().includes(primaryKeyword.toLowerCase()) : false;
+  const isTitleLengthOk = title.length >= 45 && title.length <= 65;
+  const hasTitleCtr = containsAny(title, ['best', 'reclaim', 'future', 'rebellious', 'free', 'privacy', 'trust', 'genuine', 'owner', 'why', 'how', 'escape', 'machine', 'ghost', 'wellness', 'social']);
+  
+  if (hasTitleKeyword) titleScore += 5;
+  if (isTitleLengthOk) titleScore += 5;
+  if (hasTitleCtr) titleScore += 5;
+  
+  document.getElementById('title-char-count').innerText = title.length;
+  updateRuleState('rule-title-keyword', hasTitleKeyword);
+  updateRuleState('rule-title-length', isTitleLengthOk);
+  updateRuleState('rule-title-trigger', hasTitleCtr);
+  
+  const statusTitle = document.getElementById('status-title');
+  statusTitle.className = `audit-status-icon ${titleScore === 15 ? 'success' : titleScore >= 5 ? 'warning' : 'danger'}`;
+  statusTitle.innerHTML = titleScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  totalScore += titleScore;
+
+  // 2. Meta Description Check (15 pts)
+  let metaScore = 0;
+  const hasMetaKeyword = primaryKeyword ? metaDescription.toLowerCase().includes(primaryKeyword.toLowerCase()) : false;
+  const isMetaLengthOk = metaDescription.length >= 130 && metaDescription.length <= 170;
+  const hasMetaCta = containsAny(metaDescription, ['read', 'discover', 'learn', 'join', 'start', 'explore', 'find', 'own', 'reclaim', 'why']);
+  
+  if (hasMetaKeyword) metaScore += 5;
+  if (isMetaLengthOk) metaScore += 5;
+  if (hasMetaCta) metaScore += 5;
+  
+  document.getElementById('meta-desc-text').innerText = metaDescription || 'No meta description found.';
+  document.getElementById('meta-char-count').innerText = metaDescription.length;
+  updateRuleState('rule-meta-length', isMetaLengthOk);
+  updateRuleState('rule-meta-keyword', hasMetaKeyword);
+  updateRuleState('rule-meta-cta', hasMetaCta);
+  
+  const statusMeta = document.getElementById('status-meta');
+  statusMeta.className = `audit-status-icon ${metaScore === 15 ? 'success' : metaScore >= 5 ? 'warning' : 'danger'}`;
+  statusMeta.innerHTML = metaScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  totalScore += metaScore;
+
+  // 3. Heading Structure Check (15 pts)
+  let headingScore = 0;
+  const lines = content.split('\n');
+  const h1s = lines.filter(line => line.trim().startsWith('# '));
+  const countH1 = h1s.length;
+  
+  let nestingValid = true;
+  let prevLevel = 1;
+  const headings = lines.filter(line => line.trim().startsWith('#')).map(line => {
+    const match = line.trim().match(/^(#{1,6})\s/);
+    return match ? match[1].length : null;
+  }).filter(Boolean);
+  
+  for (const h of headings) {
+    if (h - prevLevel > 1) {
+      nestingValid = false;
+      break;
+    }
+    prevLevel = h;
+  }
+  
+  const headingQuestions = lines.some(line => line.trim().startsWith('#') && line.trim().endsWith('?'));
+  const headingKeyword = primaryKeyword ? lines.some(line => line.trim().startsWith('#') && line.toLowerCase().includes(primaryKeyword.toLowerCase())) : false;
+  
+  if (countH1 === 1) headingScore += 5;
+  if (nestingValid && headings.length > 0) headingScore += 4;
+  if (headingQuestions) headingScore += 3;
+  if (headingKeyword) headingScore += 3;
+  
+  document.getElementById('count-h1').innerText = countH1;
+  updateRuleState('rule-heading-h1', countH1 === 1);
+  updateRuleState('rule-heading-hierarchy', nestingValid && headings.length > 0);
+  updateRuleState('rule-heading-questions', headingQuestions);
+  updateRuleState('rule-heading-keyword', headingKeyword);
+  
+  const statusHeadings = document.getElementById('status-headings');
+  statusHeadings.className = `audit-status-icon ${headingScore === 15 ? 'success' : headingScore >= 7 ? 'warning' : 'danger'}`;
+  statusHeadings.innerHTML = headingScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  totalScore += headingScore;
+
+  // 4. Keyword Density Check (15 pts)
+  let kwScore = 0;
+  let density = 0;
+  if (primaryKeyword && wordCount > 0) {
+    const escapedKw = primaryKeyword.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+    const regex = new RegExp(`\\b${escapedKw}\\b`, 'gi');
+    const matches = content.match(regex);
+    const count = matches ? matches.length : 0;
+    density = parseFloat(((count / wordCount) * 100).toFixed(2));
+  }
+  
+  let secondaryMatches = 0;
+  secondaryKeywords.forEach(skw => {
+    if (content.toLowerCase().includes(skw.toLowerCase())) {
+      secondaryMatches++;
+    }
+  });
+  
+  const densityOk = density >= 0.8 && density <= 2.5;
+  const secondaryOk = secondaryKeywords.length === 0 || secondaryMatches > 0;
+  const noStuffing = density < 3.5;
+  
+  if (densityOk) kwScore += 5;
+  if (secondaryOk) kwScore += 5;
+  if (noStuffing) kwScore += 5;
+  
+  document.getElementById('density-primary-val').innerText = `${density}%`;
+  updateRuleState('rule-keyword-density', densityOk);
+  updateRuleState('rule-keyword-secondary', secondaryOk);
+  updateRuleState('rule-keyword-stuffing', noStuffing);
+  
+  const statusKeywords = document.getElementById('status-keywords');
+  statusKeywords.className = `audit-status-icon ${kwScore === 15 ? 'success' : kwScore >= 5 ? 'warning' : 'danger'}`;
+  statusKeywords.innerHTML = kwScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  totalScore += kwScore;
+
+  // 5. Semantic SEO NLP (10 pts)
+  const semanticAuditList = document.getElementById('semantic-audit-list');
+  semanticAuditList.innerHTML = '';
+  let matchedSemantics = 0;
+  
+  if (state.semanticKeywords && state.semanticKeywords.length > 0) {
+    state.semanticKeywords.forEach(skw => {
+      const isMatched = content.toLowerCase().includes(skw.toLowerCase());
+      if (isMatched) matchedSemantics++;
+      
+      const item = document.createElement('div');
+      item.className = `semantic-checklist-item ${isMatched ? 'matched' : 'unmatched'}`;
+      item.innerHTML = `
+        <span>${skw}</span>
+        <i data-lucide="${isMatched ? 'check-circle' : 'circle'}"></i>
+      `;
+      semanticAuditList.appendChild(item);
+    });
+    
+    const semanticPts = Math.round((matchedSemantics / state.semanticKeywords.length) * 10);
+    totalScore += semanticPts;
+    
+    const statusSemantic = document.getElementById('status-semantic');
+    statusSemantic.className = `audit-status-icon ${semanticPts === 10 ? 'success' : semanticPts >= 4 ? 'warning' : 'danger'}`;
+    statusSemantic.innerHTML = semanticPts === 10 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  } else {
+    semanticAuditList.innerHTML = '<span class="text-muted" style="font-size: 10px;">Select keywords first.</span>';
+    totalScore += 5;
+  }
+
+  // 6. Readability & Humanization (15 pts)
+  let readScore = 0;
+  
+  const sentences = content.split(/[.!?]+\s+/).filter(Boolean);
+  let avgSentenceWords = 0;
+  if (sentences.length > 0) {
+    const totalWordsInSentences = sentences.reduce((sum, s) => sum + s.trim().split(/\s+/).length, 0);
+    avgSentenceWords = parseFloat((totalWordsInSentences / sentences.length).toFixed(1));
+  }
+  const isSentenceLengthOk = avgSentenceWords < 20;
+  
+  const paragraphs = content.split(/\n\n+/).filter(p => p.trim());
+  let avgParagraphWords = 0;
+  if (paragraphs.length > 0) {
+    const totalWordsInParagraphs = paragraphs.reduce((sum, p) => sum + p.trim().split(/\s+/).length, 0);
+    avgParagraphWords = parseFloat((totalWordsInParagraphs / paragraphs.length).toFixed(1));
+  }
+  const isParagraphSizeOk = avgParagraphWords < 65;
+  
+  const transitions = ['however', 'therefore', 'consequently', 'first', 'second', 'finally', 'because', 'although', 'since', 'besides', 'furthermore', 'but', 'yet', 'instead'];
+  const hasTransitions = containsAny(content, transitions);
+  
+  const aiClichés = ['delve', 'tapestry', 'testament', 'not only', 'but also', 'in summary', 'robust', 'double-edged sword', 'beacon', 'crucial', 'furthermore', 'relevance', 'in conclusion'];
+  const flaggedPhrases = [];
+  aiClichés.forEach(phrase => {
+    const regex = new RegExp(`\\b${phrase.replace(' ', '\\s+')}\\b`, 'gi');
+    if (regex.test(content)) {
+      flaggedPhrases.push(phrase);
+    }
+  });
+  
+  const isHumanTone = flaggedPhrases.length === 0;
+  
+  if (isSentenceLengthOk) readScore += 4;
+  if (isParagraphSizeOk) readScore += 4;
+  if (hasTransitions) readScore += 3;
+  if (isHumanTone) readScore += 4;
+  
+  document.getElementById('sentence-length-val').innerText = avgSentenceWords;
+  updateRuleState('rule-read-sentence', isSentenceLengthOk);
+  updateRuleState('rule-read-paragraph', isParagraphSizeOk);
+  updateRuleState('rule-read-transitions', hasTransitions);
+  updateRuleState('rule-read-human', isHumanTone);
+  
+  const warningBox = document.getElementById('ai-phrase-warnings-box');
+  const warningList = document.getElementById('ai-phrase-list');
+  if (flaggedPhrases.length > 0) {
+    warningBox.classList.remove('hidden');
+    warningList.innerHTML = flaggedPhrases.map(p => `<span class="ai-phrase-tag">${p}</span>`).join(' ');
+  } else {
+    warningBox.classList.add('hidden');
+    warningList.innerHTML = '';
+  }
+  
+  const statusReadability = document.getElementById('status-readability');
+  statusReadability.className = `audit-status-icon ${readScore === 15 ? 'success' : readScore >= 8 ? 'warning' : 'danger'}`;
+  statusReadability.innerHTML = readScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  totalScore += readScore;
+
+  // 7. EEAT & Freshness (15 pts)
+  let eeatScore = 0;
+  const hasStats = content.includes('%') || /\b(19|20)\d{2}\b/.test(content) || /\b\d+(\.\d+)?\b/.test(content);
+  const hasExamples = content.includes('"') || containsAny(content, ['for example', 'such as', 'instance', 'says', 'study', 'case']);
+  const hasYear = content.includes('2026');
+  
+  if (hasStats) eeatScore += 5;
+  if (hasExamples) eeatScore += 5;
+  if (hasYear) eeatScore += 5;
+  
+  updateRuleState('rule-eeat-stats', hasStats);
+  updateRuleState('rule-eeat-examples', hasExamples);
+  updateRuleState('rule-eeat-year', hasYear);
+  
+  const statusEeat = document.getElementById('status-eeat');
+  statusEeat.className = `audit-status-icon ${eeatScore === 15 ? 'success' : eeatScore >= 5 ? 'warning' : 'danger'}`;
+  statusEeat.innerHTML = eeatScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
+  totalScore += eeatScore;
+
+  updateScoreUI(totalScore);
+}
+
+function updateScoreUI(score, customStatus = '') {
+  document.getElementById('seo-score-text').innerText = `${score}%`;
+  document.getElementById('stats-keywords').innerText = `${score}%`;
+  
+  const offset = 251.2 - (score / 100) * 251.2;
+  document.getElementById('seo-score-fill').setAttribute('stroke-dashoffset', offset);
+  
+  const fillRing = document.getElementById('seo-score-fill');
+  if (score >= 80) {
+    fillRing.style.stroke = 'var(--color-success)';
+  } else if (score >= 55) {
+    fillRing.style.stroke = 'var(--color-warning)';
+  } else {
+    fillRing.style.stroke = 'var(--color-accent)';
+  }
+
+  const statusEl = document.getElementById('seo-score-status');
+  if (customStatus) {
+    statusEl.innerText = customStatus;
+  } else if (score >= 85) {
+    statusEl.innerText = 'Excellent SEO!';
+  } else if (score >= 70) {
+    statusEl.innerText = 'Good Optimization';
+  } else if (score >= 50) {
+    statusEl.innerText = 'Needs Tweaking';
+  } else {
+    statusEl.innerText = 'Poor Optimization';
   }
 }
 
@@ -548,19 +880,28 @@ async function handleRefineArticle() {
 
             if (parsed.text) {
               accumulatedText += parsed.text;
-              const linesSplit = accumulatedText.split('\n');
-              let title = state.activeArticle.title;
-              let body = accumulatedText;
-
+              
+              const metaStartTag = '[META_DESCRIPTION_START]';
+              const metaEndTag = '[META_DESCRIPTION_END]';
+              let displayBody = accumulatedText;
+              
+              if (displayBody.includes(metaStartTag) && displayBody.includes(metaEndTag)) {
+                const endIdx = displayBody.indexOf(metaEndTag) + metaEndTag.length;
+                displayBody = displayBody.substring(endIdx).trim();
+              } else if (displayBody.includes(metaStartTag)) {
+                displayBody = displayBody.substring(displayBody.indexOf(metaStartTag)).trim();
+              }
+              
+              let displayTitle = state.activeArticle.title;
+              const linesSplit = displayBody.split('\n');
               if (linesSplit[0] && linesSplit[0].startsWith('#')) {
-                title = linesSplit[0].replace(/^#\s*/, '').trim();
-                body = linesSplit.slice(1).join('\n').trim();
+                displayTitle = linesSplit[0].replace(/^#\s*/, '').trim();
+                displayBody = linesSplit.slice(1).join('\n').trim();
               }
 
-              document.getElementById('article-title-input').value = title;
-              document.getElementById('article-editor-textarea').value = body;
+              document.getElementById('article-title-input').value = displayTitle;
+              document.getElementById('article-editor-textarea').value = displayBody;
               updateWordCount();
-              updateKeywordTracker();
             }
 
             if (parsed.done && parsed.article) {
@@ -587,6 +928,7 @@ async function handleSaveDraft() {
   
   const title = document.getElementById('article-title-input').value.trim();
   const content = document.getElementById('article-editor-textarea').value;
+  const metaDescription = (state.activeArticle && state.activeArticle.metaDescription) || (state.outline && state.outline.metaDescription) || '';
 
   try {
     const res = await fetch(`/api/articles/${state.activeArticle.id}`, {
@@ -595,7 +937,10 @@ async function handleSaveDraft() {
       body: JSON.stringify({
         title,
         content,
-        keywords: Array.from(state.selectedKeywords)
+        keywords: state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []),
+        seoMetadata: state.seoMetadata,
+        outline: state.outline,
+        metaDescription
       })
     });
 
@@ -885,9 +1230,8 @@ function updateStats() {
   document.getElementById('stats-published').innerText = published;
   document.getElementById('library-count').innerText = state.articles.length;
 
-  // Compute overall match percentage across all articles
-  if (state.activeArticle) {
-    updateKeywordTracker();
+  if (state.activeArticle && state.currentStep >= 4) {
+    runSeoAudit();
   } else {
     document.getElementById('stats-keywords').innerText = '0%';
   }
@@ -921,8 +1265,8 @@ function switchTab(tabId) {
   if (tabId === 'generator') {
     title.innerText = 'Content Workspace';
     subtitle.innerText = 'Draft, refine, and publish cinematic content in favor of SynQ Social';
-    if (state.activeArticle) {
-      updateKeywordTracker();
+    if (state.activeArticle && state.currentStep >= 4) {
+      runSeoAudit();
     }
   } else if (tabId === 'library') {
     title.innerText = 'Articles Library';
@@ -946,38 +1290,69 @@ function setupEventListeners() {
     });
   });
 
-  // Clear Keywords selection
-  document.getElementById('kw-clear-all').addEventListener('click', () => {
-    state.selectedKeywords.clear();
-    document.querySelectorAll('#keywords-accordion input[type="checkbox"]').forEach(cb => {
-      cb.checked = false;
-    });
-    updateSelectedKeywordsCount();
-    updateKeywordTracker();
-    showToast('Cleared all selected target keywords.');
+  // Stepper Indicator click nav
+  document.getElementById('step-1-indicator').addEventListener('click', () => {
+    if (state.currentStep > 1) setStep(1);
+  });
+  document.getElementById('step-2-indicator').addEventListener('click', () => {
+    if (state.currentStep > 2) setStep(2);
+  });
+  document.getElementById('step-3-indicator').addEventListener('click', () => {
+    if (state.currentStep > 3) setStep(3);
+  });
+  document.getElementById('step-4-indicator').addEventListener('click', () => {
+    if (state.currentStep > 4) setStep(4);
+  });
+  document.getElementById('step-5-indicator').addEventListener('click', () => {
+    if (state.currentStep >= 4) openPublishModal();
   });
 
-  // Editor Key Press events for live word count and keyword matching
+  // Search Intent Type change listener to autofill goal
+  const intentTypeSelect = document.getElementById('seo-intent-type');
+  if (intentTypeSelect) {
+    intentTypeSelect.addEventListener('change', (e) => {
+      document.getElementById('seo-intent-goal').value = intentGoals[e.target.value] || 'Teach';
+    });
+  }
+
+  // Step 1: Plan Outline click
+  document.getElementById('btn-plan-outline').addEventListener('click', handlePlanOutline);
+
+  // Step 2: Approve & back actions
+  document.getElementById('btn-back-to-step-1').addEventListener('click', () => setStep(1));
+  document.getElementById('btn-approve-outline').addEventListener('click', handleApproveAndGenerate);
+
+  // Editor Key Press events for live word count and SEO audit
   const editorTextArea = document.getElementById('article-editor-textarea');
   editorTextArea.addEventListener('input', () => {
     updateWordCount();
-    updateKeywordTracker();
+    if (state.currentStep >= 4) {
+      runSeoAudit();
+    }
   });
 
-  // Title typing event to update active state
+  // Title typing event to update active state and audit
   const titleInput = document.getElementById('article-title-input');
   titleInput.addEventListener('input', () => {
     if (state.activeArticle) {
       state.activeArticle.title = titleInput.value.trim();
     }
+    if (state.currentStep >= 4) {
+      runSeoAudit();
+    }
+  });
+
+  // Accordion toggle click for SEO Audit Sidebar
+  document.querySelectorAll('.audit-item-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const parent = header.parentElement;
+      parent.classList.toggle('expanded');
+    });
   });
 
   // Editor Toolbar Tabs
   document.getElementById('tb-edit-tab').addEventListener('click', () => setEditorMode('edit'));
   document.getElementById('tb-preview-tab').addEventListener('click', () => setEditorMode('preview'));
-
-  // Generate Button Click
-  document.getElementById('btn-generate-article').addEventListener('click', handleGenerateArticle);
 
   // Refine Button click / Enter Key Press
   document.getElementById('btn-refine-article').addEventListener('click', handleRefineArticle);
@@ -989,7 +1364,7 @@ function setupEventListeners() {
   document.getElementById('btn-save-draft').addEventListener('click', handleSaveDraft);
 
   // Preview & Publish trigger
-  document.getElementById('btn-preview-publish').addEventListener('click', openPublishModal);
+  document.getElementById('btn-preview-publish').addEventListener('click', () => setStep(5));
 
   // Modal Actions
   document.getElementById('btn-close-modal').addEventListener('click', closePublishModal);

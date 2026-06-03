@@ -149,10 +149,36 @@ function analyzeKeywords(text) {
 }
 
 // Generate the master system prompt containing brand values and reference guidelines
-function getSystemPrompt(targetKeywords = []) {
-  const keywordString = targetKeywords.length > 0 
-    ? targetKeywords.map(kw => `- "${kw}"`).join('\n')
+// Generate the master system prompt containing brand values and reference guidelines
+function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) {
+  const primary = seoMetadata.primaryKeyword || '';
+  const secondary = seoMetadata.secondaryKeywords || legacyKeywords || [];
+  const tone = seoMetadata.brandTone || 'Philosophical & Rebellious';
+  const audience = seoMetadata.targetAudience || 'Gen Z, Digital Natives';
+  const intent = seoMetadata.searchIntent || 'Informational';
+  const country = seoMetadata.targetCountry || 'United States';
+  
+  const keywordsList = [primary, ...secondary].filter(Boolean);
+  const keywordString = keywordsList.length > 0
+    ? keywordsList.map(kw => `- "${kw}"`).join('\n')
     : `Please weave in keywords relating to decentralized social networks, privacy chat applications, and alternatives to mainstream media.`;
+  
+  let structureInstructions = '';
+  if (outline && outline.structure) {
+    structureInstructions = `You MUST write the article following this approved outline structure exactly:\n${outline.structure}\n`;
+  } else {
+    structureInstructions = `You must write the article following this recommended SEO structure:
+- Title (SEO Optimized)
+- Meta Description
+- H1
+- Introduction (Hook, Problem, Solution)
+- H2 Sections
+- H3 Subsections
+- Bullet points, tables, examples, statistics
+- FAQ Section
+- Conclusion
+- CTA (Call to Action)`;
+  }
 
   return `You are a visionary content creator and digital wellness philosopher writing articles, thought-pieces, and social media posts on behalf of the brand "SynQ Social".
 
@@ -164,29 +190,55 @@ SynQ Social Reference Guide:
   * Privacy is a fundamental human right.
   * Real connection matters more than vanity metrics (likes, shares, followers).
   * Social media should improve mental well-being, not exploit it.
-  * The internet should empower people, not manipulate them.
   * Technology must feel human again.
-  * Communities should matter more than recommendation algorithms.
   * The future internet should be decentralized, ethical, and user-first.
 
 Brand Personality & Tone:
-- Personality: Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Slightly rebellious, Philosophical but simple, Culturally aware, Cinematic in tone.
-- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang.
-- Content Themes: Digital ownership, Privacy, Surveillance culture, Social media addiction, Internet psychology, Doomscrolling, Attention economy, Online identity, Digital wellbeing, Human connection, Decentralization, Future of the internet, Internet monopolies, Authenticity online, and the emotional impact of technology.
+- Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
+- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros.
+- Content Themes: Digital ownership, Privacy, Surveillance culture, Social media addiction, Internet psychology, Doomscrolling, Attention economy, Online identity, Digital wellbeing, Human connection, Decentralization, Future of the internet.
 
-Target Audience:
-Gen Z, Gen Alpha, Digital natives, Creators, Students, Privacy-conscious users, and anyone exhausted by the current attention economy.
+SEO Content Generation Specifications:
+1. Target Audience: ${audience}
+2. Search Intent Type: ${intent}
+3. Target Country: ${country}
+4. E-E-A-T Optimization: Include real examples, mock/real statistics, original insights, and trust signals naturally.
+5. Content Freshness: Ensure the year used is 2026, incorporating current trends and latest statistics.
 
-SEO Keywords Integration:
-You must naturally, subtly, and contextually weave in some of the following keywords in the article text. Do NOT dump them all at once. They must read seamlessly and flow naturally within your cinematic paragraphs. Here is your target keyword set for this article:
+Structure instructions:
+${structureInstructions}
+
+Keyword Integration:
+You must naturally, subtly, and contextually weave in the following keywords. Do NOT dump them all at once. They must read seamlessly and flow naturally within your cinematic paragraphs:
 ${keywordString}
 
 Format & Output Style:
 - Return your response strictly in Markdown.
-- The first line of your output MUST be the article title, starting with '# ' (e.g., "# The Ghost in the Machine: Why We Need to Reclaim Our Connection").
-- Do NOT include any conversational intro/outro text (such as "Here is the article you requested" or "Let me know if you want modifications"). Just write the markdown article directly.
+- Start your response directly with the Meta Description block formatted exactly as:
+[META_DESCRIPTION_START]
+Your meta description goes here (140-160 characters).
+[META_DESCRIPTION_END]
+- Then immediately follow with the Article content starting with the H1 (e.g. "# The Ghost in the Machine...").
+- Do NOT include any conversational intro/outro text (such as "Here is the article...").
 `;
 }
+
+const OUTLINE_SYSTEM_PROMPT = `You are an expert SEO Content Strategist. Your task is to perform keyword analysis, detect search intent, perform basic competitor outline planning, generate semantic entities, and construct an optimized outline.
+You must return your response strictly as a JSON object, with no other text, markdown wrapper, or conversational filler.
+The JSON must follow this exact format:
+{
+  "detectedIntent": {
+    "type": "Informational | Commercial | Transactional",
+    "goal": "Teach | Compare | Convert"
+  },
+  "semanticKeywords": ["nlp keyword 1", "nlp keyword 2", "nlp keyword 3", "nlp keyword 4"],
+  "outline": {
+    "title": "SEO Optimized Title Suggestion",
+    "metaDescription": "SEO Optimized Meta Description Suggestion (140-160 characters, with primary keyword and CTA)",
+    "structure": "Markdown list of the outline including H1, Introduction (Hook, Problem, Solution), H2/H3 headings, FAQ sections, Conclusion, and CTA"
+  }
+}
+`;
 
 // REST API Endpoints
 
@@ -338,16 +390,92 @@ app.post('/api/articles/:id/publish', async (req, res) => {
   });
 });
 
-// 4. AI Generation Route (Ollama Streaming)
-app.post('/api/articles/generate', async (req, res) => {
-  const { prompt, keywords = [] } = req.body;
-  
-  if (!prompt) {
-    return res.status(400).json({ error: 'Prompt is required' });
+// 3.5. AI SEO Outline Planning Route
+app.post('/api/articles/plan-outline', async (req, res) => {
+  const { seoMetadata } = req.body;
+  if (!seoMetadata || !seoMetadata.primaryKeyword) {
+    return res.status(400).json({ error: 'Primary Keyword is required in seoMetadata' });
   }
 
   const config = db.getConfig();
-  const systemPrompt = getSystemPrompt(keywords);
+  const userPrompt = `Please plan the SEO strategy and outline for:
+Primary Keyword: ${seoMetadata.primaryKeyword}
+Secondary Keywords: ${seoMetadata.secondaryKeywords ? seoMetadata.secondaryKeywords.join(', ') : 'None'}
+Target Audience: ${seoMetadata.targetAudience || 'General'}
+Search Intent: ${seoMetadata.searchIntent || 'Not specified'}
+Content Type: ${seoMetadata.contentType || 'Blog Post'}
+Target Country: ${seoMetadata.targetCountry || 'Global'}
+Competitor URLs: ${seoMetadata.competitorUrls ? seoMetadata.competitorUrls.join(', ') : 'None'}
+Brand Tone: ${seoMetadata.brandTone || 'Philosophical & Rebellious'}
+`;
+
+  try {
+    const response = await fetch(`${config.ollamaUrl}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: config.model,
+        messages: [
+          { role: 'system', content: OUTLINE_SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt }
+        ],
+        stream: false,
+        options: {
+          temperature: 0.2
+        }
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Ollama returned status ${response.status}`);
+    }
+
+    const data = await response.json();
+    const resultText = data.message?.content || '';
+    
+    let jsonResult;
+    try {
+      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : resultText;
+      jsonResult = JSON.parse(cleanJson);
+    } catch (e) {
+      console.error('Failed to parse outline JSON, raw text:', resultText);
+      jsonResult = {
+        detectedIntent: {
+          type: seoMetadata.searchIntent || "Informational",
+          goal: "Teach"
+        },
+        semanticKeywords: ["privacy first network", "anonymous platform", "decentralized ecosystem"],
+        outline: {
+          title: `Optimized: ${seoMetadata.primaryKeyword}`,
+          metaDescription: `Discover the details about ${seoMetadata.primaryKeyword}. Learn more here!`,
+          structure: `# H1: ${seoMetadata.primaryKeyword}\n## Introduction\n- Hook\n- Problem\n- Solution\n## Key Aspects of ${seoMetadata.primaryKeyword}\n## FAQ Section\n## Conclusion`
+        }
+      };
+    }
+
+    res.json(jsonResult);
+  } catch (error) {
+    console.error('Outline planning error:', error);
+    res.status(500).json({ error: 'Ollama is unreachable or failed to plan outline.' });
+  }
+});
+
+// 4. AI Generation Route (Ollama Streaming)
+app.post('/api/articles/generate', async (req, res) => {
+  const { prompt, seoMetadata = {}, outline = null, keywords = [] } = req.body;
+  
+  const config = db.getConfig();
+  const systemPrompt = getSystemPrompt(seoMetadata, outline, keywords);
+
+  let userPrompt = prompt;
+  if (!userPrompt) {
+    if (seoMetadata.primaryKeyword) {
+      userPrompt = `Write a complete, high-quality, human-like SEO article for the primary keyword "${seoMetadata.primaryKeyword}". Follow the approved outline structure, incorporate statistics and examples, auto-generate an FAQ block, and naturally integrate keywords.`;
+    } else {
+      return res.status(400).json({ error: 'Prompt or seoMetadata is required' });
+    }
+  }
 
   // Set headers for SSE streaming
   res.setHeader('Content-Type', 'text/event-stream');
@@ -362,7 +490,7 @@ app.post('/api/articles/generate', async (req, res) => {
         model: config.model,
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
+          { role: 'user', content: userPrompt }
         ],
         stream: true
       })
@@ -398,13 +526,27 @@ app.post('/api/articles/generate', async (req, res) => {
       // Analyze title and final keyword coverage
       let title = 'Untitled SynQ Post';
       let content = fullResponseText.trim();
+      let metaDescription = '';
+
+      // Parse Meta Description if enclosed in brackets
+      const metaStartTag = '[META_DESCRIPTION_START]';
+      const metaEndTag = '[META_DESCRIPTION_END]';
+      if (content.includes(metaStartTag) && content.includes(metaEndTag)) {
+        const startIdx = content.indexOf(metaStartTag) + metaStartTag.length;
+        const endIdx = content.indexOf(metaEndTag);
+        metaDescription = content.substring(startIdx, endIdx).trim();
+        content = (content.substring(0, content.indexOf(metaStartTag)) + content.substring(endIdx + metaEndTag.length)).trim();
+      } else if (outline && outline.metaDescription) {
+        metaDescription = outline.metaDescription;
+      }
       
       // Attempt to extract title from first line
       const lines = content.split('\n');
       if (lines[0] && lines[0].startsWith('#')) {
         title = lines[0].replace(/^#\s*/, '').trim();
-        // Remove title from content to keep clean body (or keep it based on preference)
         content = lines.slice(1).join('\n').trim();
+      } else if (outline && outline.title) {
+        title = outline.title;
       }
 
       const analyzedKeywords = analyzeKeywords(fullResponseText);
@@ -413,13 +555,16 @@ app.post('/api/articles/generate', async (req, res) => {
       const savedArticle = db.addArticle({
         title,
         content,
-        prompt,
+        prompt: userPrompt,
         history: [
-          { role: 'user', content: prompt },
+          { role: 'user', content: userPrompt },
           { role: 'assistant', content: fullResponseText }
         ],
         status: 'draft',
-        keywords: analyzedKeywords
+        keywords: analyzedKeywords,
+        seoMetadata,
+        outline,
+        metaDescription
       });
 
       // Send the final result with saved db record
@@ -455,7 +600,7 @@ app.post('/api/articles/:id/refine', async (req, res) => {
   }
 
   const config = db.getConfig();
-  const systemPrompt = getSystemPrompt(article.keywords || []);
+  const systemPrompt = getSystemPrompt(article.seoMetadata || {}, article.outline || null, article.keywords || []);
 
   // Set headers for SSE streaming
   res.setHeader('Content-Type', 'text/event-stream');
@@ -520,6 +665,17 @@ app.post('/api/articles/:id/refine', async (req, res) => {
     reader.on('end', () => {
       let title = article.title;
       let content = fullResponseText.trim();
+      let metaDescription = article.metaDescription || '';
+
+      // Parse Meta Description if enclosed in brackets
+      const metaStartTag = '[META_DESCRIPTION_START]';
+      const metaEndTag = '[META_DESCRIPTION_END]';
+      if (content.includes(metaStartTag) && content.includes(metaEndTag)) {
+        const startIdx = content.indexOf(metaStartTag) + metaStartTag.length;
+        const endIdx = content.indexOf(metaEndTag);
+        metaDescription = content.substring(startIdx, endIdx).trim();
+        content = (content.substring(0, content.indexOf(metaStartTag)) + content.substring(endIdx + metaEndTag.length)).trim();
+      }
 
       // Extract updated title if returned in Markdown style
       const lines = content.split('\n');
@@ -543,7 +699,8 @@ app.post('/api/articles/:id/refine', async (req, res) => {
         title,
         content,
         history: updatedHistory,
-        keywords: analyzedKeywords
+        keywords: analyzedKeywords,
+        metaDescription
       });
 
       res.write(`data: ${JSON.stringify({ done: true, article: updatedArticle })}\n\n`);
