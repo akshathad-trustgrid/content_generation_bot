@@ -251,6 +251,85 @@ function loadArticleIntoWorkspace(article) {
   showToast(`Loaded "${article.title}" into workspace.`);
 }
 
+// Reset workspace state and clear input forms for new generation
+function startNewArticle() {
+  if (state.activeArticle) {
+    const currentTitle = document.getElementById('article-title-input').value.trim();
+    const currentContent = document.getElementById('article-editor-textarea').value;
+    const isModified = currentTitle !== state.activeArticle.title || currentContent !== state.activeArticle.content;
+    
+    if (isModified) {
+      if (!confirm("You have unsaved changes in your current workspace. Are you sure you want to discard them and start a new article?")) {
+        return;
+      }
+    }
+  }
+
+  // Clear workspace active article
+  state.activeArticle = null;
+  state.outline = null;
+  state.detectedIntent = { type: 'Informational', goal: 'Teach' };
+  state.semanticKeywords = [];
+  state.selectedKeywords.clear();
+
+  // Reset parameters metadata to default values
+  state.seoMetadata = {
+    primaryKeyword: '',
+    secondaryKeywords: [],
+    targetAudience: 'Gen Z, Digital Natives',
+    searchIntent: 'Informational',
+    contentType: 'Blog Post',
+    targetCountry: 'United States',
+    competitorUrls: [],
+    brandTone: 'Philosophical, Youthful, Rebellious'
+  };
+
+  // Reset Wizard step 1 forms
+  document.getElementById('seo-primary-keyword').value = '';
+  document.getElementById('seo-secondary-keywords').value = '';
+  document.getElementById('seo-target-audience').value = 'Gen Z, Digital Natives';
+  document.getElementById('seo-intent-type').value = 'Informational';
+  document.getElementById('seo-intent-goal').value = 'Teach';
+  document.getElementById('seo-content-type').value = 'Blog Post';
+  document.getElementById('seo-target-country').value = 'United States';
+  document.getElementById('seo-competitor-urls').value = '';
+  document.getElementById('seo-brand-tone').value = 'Philosophical, Youthful, Rebellious';
+
+  // Reset Wizard step 2 outline suggestion forms
+  document.getElementById('outline-title-suggestion').value = '';
+  document.getElementById('outline-meta-suggestion').value = '';
+  document.getElementById('outline-structure-editor').value = '';
+  const tagContainer = document.getElementById('semantic-keywords-tags');
+  if (tagContainer) tagContainer.innerHTML = '';
+
+  // Reset editor text areas
+  document.getElementById('article-title-input').value = '';
+  document.getElementById('article-title-input').readOnly = true;
+  document.getElementById('article-editor-textarea').value = '';
+  updateWordCount();
+
+  // Reset audit scores
+  document.getElementById('seo-score-text').innerText = '0%';
+  document.getElementById('seo-score-status').innerText = 'Needs Content';
+  document.getElementById('seo-score-fill').setAttribute('stroke-dashoffset', '251.2');
+
+  // Disable workspace action buttons
+  document.getElementById('btn-save-draft').disabled = true;
+  document.getElementById('btn-preview-publish').disabled = true;
+
+  // Toggle visible workspace nodes back to empty state
+  document.getElementById('editor-empty').classList.remove('hidden');
+  document.getElementById('editor-wrapper').classList.add('hidden');
+  document.getElementById('refinement-container').classList.add('hidden');
+  document.getElementById('seo-audit-sidebar').classList.add('hidden');
+
+  // Navigate to Step 1 & switch to Generator view
+  setStep(1);
+  switchTab('generator');
+
+  showToast('Started a new content workspace.', 'success');
+}
+
 function renderRefinementHistory() {
   const historyList = document.getElementById('refinement-history-list');
   historyList.innerHTML = '';
@@ -320,6 +399,19 @@ function setStep(stepNum) {
     }
   }
 
+  // Update layout wrapper step class for responsive grid templates
+  const layoutEl = document.querySelector('.generator-layout');
+  if (layoutEl) {
+    layoutEl.classList.remove('step-setup', 'step-writing', 'step-audit');
+    if (stepNum === 1 || stepNum === 2) {
+      layoutEl.classList.add('step-setup');
+    } else if (stepNum === 3) {
+      layoutEl.classList.add('step-writing');
+    } else if (stepNum === 4) {
+      layoutEl.classList.add('step-audit');
+    }
+  }
+
   // Toggle Left Panels
   const panelStep1 = document.getElementById('panel-step-1');
   const panelStep2 = document.getElementById('panel-step-2');
@@ -362,6 +454,152 @@ function setStep(stepNum) {
     runSeoAudit();
   } else if (stepNum === 5) {
     openPublishModal();
+  }
+}
+
+async function handleAutoGenerate() {
+  const primaryKeyword = document.getElementById('seo-primary-keyword').value.trim();
+  if (!primaryKeyword) {
+    showToast('Primary Keyword is required.', 'warning');
+    return;
+  }
+  
+  const secondaryKeywords = document.getElementById('seo-secondary-keywords').value.split(',').map(s => s.trim()).filter(Boolean);
+  const targetAudience = document.getElementById('seo-target-audience').value.trim();
+  const searchIntent = document.getElementById('seo-intent-type').value;
+  const contentType = document.getElementById('seo-content-type').value;
+  const targetCountry = document.getElementById('seo-target-country').value.trim();
+  const competitorUrls = document.getElementById('seo-competitor-urls').value.split('\n').map(s => s.trim()).filter(Boolean);
+  const brandTone = document.getElementById('seo-brand-tone').value.trim();
+
+  state.seoMetadata = {
+    primaryKeyword,
+    secondaryKeywords,
+    targetAudience,
+    searchIntent,
+    contentType,
+    targetCountry,
+    competitorUrls,
+    brandTone
+  };
+
+  startLoadingOverlay('Step 1/2: Designing SEO Outline & Intent Analysis...');
+
+  try {
+    // 1. Fetch search intent analysis and outline behind the scenes
+    const res = await fetch('/api/articles/plan-outline', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ seoMetadata: state.seoMetadata })
+    });
+    
+    if (!res.ok) {
+      throw new Error(`Outline planning failed: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    state.outline = data.outline;
+    state.detectedIntent = data.detectedIntent;
+    state.semanticKeywords = data.semanticKeywords || [];
+
+    // Automatically transit UI to Step 3 (Editor View) showing live generation
+    setStep(3);
+    startLoadingOverlay('Step 2/2: Weaving SEO Article and AI social media copy...');
+
+    // 2. Trigger stream generation
+    const response = await fetch('/api/articles/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        seoMetadata: state.seoMetadata,
+        outline: state.outline
+      })
+    });
+
+    if (!response.ok) {
+      throw new Error(`Generation failed with HTTP status ${response.status}`);
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let accumulatedText = '';
+
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop();
+
+      for (const line of lines) {
+        const cleanLine = line.trim();
+        if (cleanLine.startsWith('data: ')) {
+          const rawData = cleanLine.slice(6);
+          try {
+            const parsed = JSON.parse(rawData);
+            
+            if (parsed.error) {
+              throw new Error(parsed.error);
+            }
+            
+            if (parsed.text) {
+              accumulatedText += parsed.text;
+              
+              const metaStartTag = '[META_DESCRIPTION_START]';
+              const metaEndTag = '[META_DESCRIPTION_END]';
+              let displayBody = accumulatedText;
+              
+              if (displayBody.includes(metaStartTag) && displayBody.includes(metaEndTag)) {
+                const endIdx = displayBody.indexOf(metaEndTag) + metaEndTag.length;
+                displayBody = displayBody.substring(endIdx).trim();
+              } else if (displayBody.includes(metaStartTag)) {
+                displayBody = displayBody.substring(displayBody.indexOf(metaStartTag)).trim();
+              }
+
+              const socialStartTag = '[SOCIAL_POST_START]';
+              const socialEndTag = '[SOCIAL_POST_END]';
+              if (displayBody.includes(socialStartTag) && displayBody.includes(socialEndTag)) {
+                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
+              } else if (displayBody.includes(socialStartTag)) {
+                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
+              }
+              
+              let displayTitle = state.outline.title;
+              const linesSplit = displayBody.split('\n');
+              if (linesSplit[0] && linesSplit[0].startsWith('#')) {
+                displayTitle = linesSplit[0].replace(/^#\s*/, '').trim();
+                displayBody = linesSplit.slice(1).join('\n').trim();
+              }
+              
+              document.getElementById('article-title-input').value = displayTitle;
+              document.getElementById('article-editor-textarea').value = displayBody;
+              updateWordCount();
+            }
+
+            if (parsed.done && parsed.article) {
+              state.activeArticle = parsed.article;
+              
+              // Load saved metadata (restores refinement list, tags)
+              loadArticleIntoWorkspace(parsed.article);
+              await refreshLibrary();
+
+              // Automatically shift to Step 4 (SEO Audit page)
+              setStep(4);
+              showToast('Article generated and SEO audited successfully!', 'success');
+            }
+
+          } catch (e) {}
+        }
+      }
+    }
+
+  } catch (err) {
+    showToast(err.message, 'error');
+    setStep(1);
+  } finally {
+    stopLoadingOverlay();
   }
 }
 
@@ -506,6 +744,14 @@ async function handleApproveAndGenerate() {
                 displayBody = displayBody.substring(endIdx).trim();
               } else if (displayBody.includes(metaStartTag)) {
                 displayBody = displayBody.substring(displayBody.indexOf(metaStartTag)).trim();
+              }
+              
+              const socialStartTag = '[SOCIAL_POST_START]';
+              const socialEndTag = '[SOCIAL_POST_END]';
+              if (displayBody.includes(socialStartTag) && displayBody.includes(socialEndTag)) {
+                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
+              } else if (displayBody.includes(socialStartTag)) {
+                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
               }
               
               let displayTitle = state.outline.title;
@@ -892,6 +1138,14 @@ async function handleRefineArticle() {
                 displayBody = displayBody.substring(displayBody.indexOf(metaStartTag)).trim();
               }
               
+              const socialStartTag = '[SOCIAL_POST_START]';
+              const socialEndTag = '[SOCIAL_POST_END]';
+              if (displayBody.includes(socialStartTag) && displayBody.includes(socialEndTag)) {
+                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
+              } else if (displayBody.includes(socialStartTag)) {
+                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
+              }
+              
               let displayTitle = state.activeArticle.title;
               const linesSplit = displayBody.split('\n');
               if (linesSplit[0] && linesSplit[0].startsWith('#')) {
@@ -948,7 +1202,7 @@ async function handleSaveDraft() {
       const updated = await res.json();
       state.activeArticle = updated;
       await refreshLibrary();
-      showToast('Draft saved successfully.', 'success');
+      showToast('Draft saved successfully. Click "+ New Article" to clear & start another!', 'success');
     }
   } catch (err) {
     showToast('Failed to save draft content.', 'error');
@@ -999,12 +1253,15 @@ function openPublishModal() {
   // Render content preview inside LinkedIn card
   document.getElementById('li-post-headline-text').innerText = title;
   
-  // Format body text with simple markdown converter for a LinkedIn feed style
-  const bodyText = rawContent
-    .replace(/^#\s+.+$/gm, '') // Remove top level title if present
-    .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
-    .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
-    .replace(/\*(.+?)\*/g, '$1');
+  // Use AI-generated social copy if available, otherwise fall back to formatted body text
+  let bodyText = (state.activeArticle && state.activeArticle.socialText) || '';
+  if (!bodyText) {
+    bodyText = rawContent
+      .replace(/^#\s+.+$/gm, '') // Remove top level title if present
+      .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
+      .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
+      .replace(/\*(.+?)\*/g, '$1');
+  }
 
   document.getElementById('li-post-body-text').innerText = bodyText.trim();
 
@@ -1044,6 +1301,13 @@ async function handleConfirmPublish() {
       
       // Trigger celebrate confetti!
       triggerConfetti();
+
+      // Prompt user to start next article workspace after successfully publishing
+      setTimeout(() => {
+        if (confirm("Article published successfully! Do you want to start a new workspace for your next article?")) {
+          startNewArticle();
+        }
+      }, 1000);
     } else {
       const errData = await res.json();
       showToast(errData.error || 'Error publishing article.', 'error');
@@ -1290,6 +1554,12 @@ function setupEventListeners() {
     });
   });
 
+  // Sidebar New Article trigger
+  const sidebarNewBtn = document.getElementById('btn-sidebar-new-article');
+  if (sidebarNewBtn) {
+    sidebarNewBtn.addEventListener('click', startNewArticle);
+  }
+
   // Stepper Indicator click nav
   document.getElementById('step-1-indicator').addEventListener('click', () => {
     if (state.currentStep > 1) setStep(1);
@@ -1313,6 +1583,12 @@ function setupEventListeners() {
     intentTypeSelect.addEventListener('change', (e) => {
       document.getElementById('seo-intent-goal').value = intentGoals[e.target.value] || 'Teach';
     });
+  }
+
+  // Step 1: Auto-Generate click
+  const autoGenBtn = document.getElementById('btn-auto-generate');
+  if (autoGenBtn) {
+    autoGenBtn.addEventListener('click', handleAutoGenerate);
   }
 
   // Step 1: Plan Outline click

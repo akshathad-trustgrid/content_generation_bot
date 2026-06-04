@@ -36,6 +36,10 @@
         <span class="status-label">Ollama Llama 3.2:3b Connected</span>
       </div>
       
+      <button class="btn btn-primary" id="btn-sidebar-new-article" style="margin-bottom: 20px;">
+        <i data-lucide="plus"></i> New Article
+      </button>
+      
       <nav class="sidebar-nav">
         <button class="nav-btn active" data-tab="generator">
           <i data-lucide="sparkles"></i>
@@ -183,9 +187,14 @@
                   <input type="text" id="seo-brand-tone" value="Philosophical, Youthful, Rebellious">
                 </div>
 
-                <button class="btn btn-primary btn-generate" id="btn-plan-outline" style="width: 100%;">
+                <button class="btn btn-accent btn-generate" id="btn-auto-generate" style="width: 100%; margin-bottom: 10px;">
+                  <i data-lucide="zap"></i>
+                  <span>Auto-Generate & Audit</span>
+                </button>
+
+                <button class="btn btn-secondary btn-generate" id="btn-plan-outline" style="width: 100%;">
                   <i data-lucide="compass"></i>
-                  <span>1. Detect Intent & Plan Outline</span>
+                  <span>Plan Step-by-Step</span>
                 </button>
               </div>
 
@@ -339,7 +348,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="type" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Title Optimization</span>
                     <span class="audit-status-icon success" id="status-title" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
                       <li id="rule-title-keyword" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Primary keyword included</li>
                       <li id="rule-title-length" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> 50–60 characters (<span id="title-char-count">0</span> chars)</li>
@@ -354,7 +363,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Meta Description</span>
                     <span class="audit-status-icon success" id="status-meta" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <div class="meta-desc-display" id="meta-desc-text" style="font-size: 10px; font-family: var(--font-mono); color: var(--text-dim); background: rgba(0,0,0,0.3); padding: 8px; border-radius: 4px; margin-bottom: 8px; line-height: 1.4; border: 1px solid rgba(255,255,255,0.05); overflow-wrap: break-word;">No meta description found.</div>
                     <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
                       <li id="rule-meta-length" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> 140–160 characters (<span id="meta-char-count">0</span> chars)</li>
@@ -370,7 +379,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Heading Structure</span>
                     <span class="audit-status-icon success" id="status-headings" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
                       <li id="rule-heading-h1" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Exactly 1 H1 (<span id="count-h1">0</span>)</li>
                       <li id="rule-heading-hierarchy" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Proper H2/H3 nesting</li>
@@ -386,7 +395,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="key-round" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Keyword Density</span>
                     <span class="audit-status-icon success" id="status-keywords" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <div class="density-stats" style="font-size: 10px; background: rgba(0,0,0,0.2); padding: 8px; border-radius: 4px; margin-bottom: 8px; border: 1px solid rgba(255,255,255,0.04); display: flex; justify-content: space-between;">
                       <span>Primary: <strong id="density-primary-val" style="color:#fff;">0%</strong></span>
                       <span class="text-muted">Target: 1.0% - 2.0%</span>
@@ -405,7 +414,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="git-branch" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Semantic SEO (NLP)</span>
                     <span class="audit-status-icon success" id="status-semantic" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <p style="font-size: 10px; margin-bottom: 6px;" class="text-muted">Incorporate suggested terms into the post body:</p>
                     <div class="semantic-checklist" id="semantic-audit-list" style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto; padding-right: 5px;">
                       <!-- Dynamically loaded NLP terms -->
@@ -420,7 +429,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="eye" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Readability</span>
                     <span class="audit-status-icon success" id="status-readability" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
                       <li id="rule-read-sentence" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Sentences &lt; 20 words (Avg: <span id="sentence-length-val">0</span>)</li>
                       <li id="rule-read-paragraph" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Paragraphs 2–3 lines avg</li>
@@ -440,7 +449,7 @@
                     <span class="audit-item-title" style="font-size: 12px; font-weight: 600; color: #fff; display: flex; align-items: center; gap: 8px;"><i data-lucide="award" style="width: 14px; height: 14px; color: var(--color-primary);"></i> EEAT & Freshness</span>
                     <span class="audit-status-icon success" id="status-eeat" style="color: #ef4444;"><i data-lucide="alert-circle" style="width: 14px; height: 14px;"></i></span>
                   </div>
-                  <div class="audit-item-content" style="padding: 10px; border-top: 1px solid rgba(255,255,255,0.02);">
+                  <div class="audit-item-content">
                     <ul class="audit-rules-list" style="list-style: none; display: flex; flex-direction: column; gap: 6px;">
                       <li id="rule-eeat-stats" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Includes statistics (%)</li>
                       <li id="rule-eeat-examples" style="font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 6px;"><i data-lucide="circle" style="width: 8px; height: 8px;"></i> Real-world examples / quotes</li>

@@ -219,6 +219,10 @@ Format & Output Style:
 Your meta description goes here (140-160 characters).
 [META_DESCRIPTION_END]
 - Then immediately follow with the Article content starting with the H1 (e.g. "# The Ghost in the Machine...").
+- At the very end of the article, append a dedicated social media post summary of the article suitable for direct posting to LinkedIn. Format it with an attention-grabbing hook/headline, double line breaks, bullet points with emojis, a question to drive comments, and relevant hashtags. Enclose this post copy exactly as:
+[SOCIAL_POST_START]
+Your ready-to-post LinkedIn copy goes here.
+[SOCIAL_POST_END]
 - Do NOT include any conversational intro/outro text (such as "Here is the article...").
 `;
 }
@@ -346,14 +350,17 @@ app.post('/api/articles/:id/publish', async (req, res) => {
   if (config.webhookUrl) {
     webhookStatus.triggered = true;
     try {
-      // Prepare a clean text version of the post for social media (stripping markdown)
-      const cleanBody = updated.content
-        .replace(/^#\s+.+$/gm, '') // Remove top level title if present
-        .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
-        .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
-        .replace(/\*(.+?)\*/g, '$1') // Remove italics
-        .trim();
-      const socialText = `${updated.title}\n\n${cleanBody}`;
+      // Prepare a clean text version of the post for social media (stripping markdown or using AI social copy)
+      let socialText = updated.socialText || '';
+      if (!socialText) {
+        const cleanBody = updated.content
+          .replace(/^#\s+.+$/gm, '') // Remove top level title if present
+          .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
+          .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
+          .replace(/\*(.+?)\*/g, '$1') // Remove italics
+          .trim();
+        socialText = `${updated.title}\n\n${cleanBody}`;
+      }
 
       const response = await fetch(config.webhookUrl, {
         method: 'POST',
@@ -551,6 +558,17 @@ app.post('/api/articles/generate', async (req, res) => {
 
       const analyzedKeywords = analyzeKeywords(fullResponseText);
 
+      // Parse Social Media Post if enclosed in brackets
+      let socialText = '';
+      const socialStartTag = '[SOCIAL_POST_START]';
+      const socialEndTag = '[SOCIAL_POST_END]';
+      if (content.includes(socialStartTag) && content.includes(socialEndTag)) {
+        const startIdx = content.indexOf(socialStartTag) + socialStartTag.length;
+        const endIdx = content.indexOf(socialEndTag);
+        socialText = content.substring(startIdx, endIdx).trim();
+        content = (content.substring(0, content.indexOf(socialStartTag)) + content.substring(endIdx + socialEndTag.length)).trim();
+      }
+
       // Save as draft in local database
       const savedArticle = db.addArticle({
         title,
@@ -564,7 +582,8 @@ app.post('/api/articles/generate', async (req, res) => {
         keywords: analyzedKeywords,
         seoMetadata,
         outline,
-        metaDescription
+        metaDescription,
+        socialText
       });
 
       // Send the final result with saved db record
@@ -684,6 +703,17 @@ app.post('/api/articles/:id/refine', async (req, res) => {
         content = lines.slice(1).join('\n').trim();
       }
 
+      // Parse Social Media Post if enclosed in brackets
+      let socialText = article.socialText || '';
+      const socialStartTag = '[SOCIAL_POST_START]';
+      const socialEndTag = '[SOCIAL_POST_END]';
+      if (content.includes(socialStartTag) && content.includes(socialEndTag)) {
+        const startIdx = content.indexOf(socialStartTag) + socialStartTag.length;
+        const endIdx = content.indexOf(socialEndTag);
+        socialText = content.substring(startIdx, endIdx).trim();
+        content = (content.substring(0, content.indexOf(socialStartTag)) + content.substring(endIdx + socialEndTag.length)).trim();
+      }
+
       // Re-evaluate keywords
       const analyzedKeywords = analyzeKeywords(fullResponseText);
 
@@ -700,7 +730,8 @@ app.post('/api/articles/:id/refine', async (req, res) => {
         content,
         history: updatedHistory,
         keywords: analyzedKeywords,
-        metaDescription
+        metaDescription,
+        socialText
       });
 
       res.write(`data: ${JSON.stringify({ done: true, article: updatedArticle })}\n\n`);
