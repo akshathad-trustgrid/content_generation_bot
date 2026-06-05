@@ -103,21 +103,16 @@
             <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
             <div class="step-item" id="step-2-indicator">
               <div class="step-num">2</div>
-              <div class="step-label">SEO Outline</div>
+              <div class="step-label">Content Writing</div>
             </div>
             <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
             <div class="step-item" id="step-3-indicator">
               <div class="step-num">3</div>
-              <div class="step-label">Content Writing</div>
+              <div class="step-label">SEO Audit</div>
             </div>
             <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
             <div class="step-item" id="step-4-indicator">
               <div class="step-num">4</div>
-              <div class="step-label">SEO Audit</div>
-            </div>
-            <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
-            <div class="step-item" id="step-5-indicator">
-              <div class="step-num">5</div>
               <div class="step-label">Publish</div>
             </div>
           </div>
@@ -143,13 +138,14 @@
 
                 <div class="form-group">
                   <label for="seo-target-audience">Target Audience</label>
-                  <input type="text" id="seo-target-audience" value="Gen Z, Digital Natives">
+                  <input type="text" id="seo-target-audience" placeholder="e.g. Gen Z, Digital Natives">
                 </div>
 
                 <div class="form-row" style="display: flex; gap: 10px;">
                   <div class="form-group" style="flex: 1;">
                     <label for="seo-intent-type">Search Intent Type</label>
                     <select id="seo-intent-type" style="width: 100%;">
+                      <option value="" disabled selected>Select Intent Type</option>
                       <option value="Informational">Informational</option>
                       <option value="Commercial">Commercial</option>
                       <option value="Transactional">Transactional</option>
@@ -157,7 +153,7 @@
                   </div>
                   <div class="form-group" style="flex: 1;">
                     <label for="seo-intent-goal">Search Intent Goal</label>
-                    <input type="text" id="seo-intent-goal" value="Teach" readonly style="width: 100%;">
+                    <input type="text" id="seo-intent-goal" placeholder="Auto-filled" readonly style="width: 100%;">
                   </div>
                 </div>
 
@@ -165,6 +161,7 @@
                   <div class="form-group" style="flex: 1;">
                     <label for="seo-content-type">Content Type</label>
                     <select id="seo-content-type" style="width: 100%;">
+                      <option value="" disabled selected>Select Content Type</option>
                       <option value="Blog Post">Blog Post</option>
                       <option value="Thought Leadership">Thought Leadership</option>
                       <option value="Review Guide">Review Guide</option>
@@ -173,7 +170,7 @@
                   </div>
                   <div class="form-group" style="flex: 1;">
                     <label for="seo-target-country">Target Country</label>
-                    <input type="text" id="seo-target-country" value="United States" style="width: 100%;">
+                    <input type="text" id="seo-target-country" placeholder="e.g. United States" style="width: 100%;">
                   </div>
                 </div>
 
@@ -184,7 +181,7 @@
 
                 <div class="form-group">
                   <label for="seo-brand-tone">Brand Tone</label>
-                  <input type="text" id="seo-brand-tone" value="Philosophical, Youthful, Rebellious">
+                  <input type="text" id="seo-brand-tone" placeholder="e.g. Philosophical, Youthful, Rebellious">
                 </div>
 
                 <button class="btn btn-accent btn-generate" id="btn-auto-generate" style="width: 100%; margin-bottom: 10px;">
@@ -192,69 +189,45 @@
                   <span>Auto-Generate & Audit</span>
                 </button>
 
-                <button class="btn btn-secondary btn-generate" id="btn-plan-outline" style="width: 100%;">
-                  <i data-lucide="compass"></i>
-                  <span>Plan Step-by-Step</span>
+                <button class="btn btn-secondary" id="btn-next-to-step-2" style="width: 100%;">
+                  <span>Next: Workspace</span> <i data-lucide="arrow-right"></i>
                 </button>
-              </div>
-
-              <!-- STEP 2 PANEL: Outline Approval -->
-              <div class="outline-approval card hidden" id="panel-step-2">
-                <h2 class="card-title"><i data-lucide="list-checks"></i> 2. SEO Content Structure</h2>
-                <p class="section-desc" style="margin-bottom: 12px; font-size: 11px;">Review target intent, generated semantic keywords, and refine the outline structure below.</p>
-                
-                <div class="intent-badge-group" style="display: flex; gap: 8px; margin-bottom: 12px;">
-                  <span class="badge badge-primary" id="detected-intent-badge" style="background: rgba(139, 92, 246, 0.2); color: #c084fc; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid rgba(139, 92, 246, 0.4);">Intent: Informational</span>
-                  <span class="badge badge-secondary" id="detected-goal-badge" style="background: rgba(8, 145, 178, 0.2); color: #22d3ee; padding: 4px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; border: 1px solid rgba(8, 145, 178, 0.4);">Goal: Teach</span>
-                </div>
-
-                <div class="form-group">
-                  <label>Suggested Semantic Keywords (NLP)</label>
-                  <div class="semantic-tags-container" id="semantic-keywords-tags" style="display: flex; flex-wrap: wrap; gap: 6px; padding: 8px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); min-height: 40px;">
-                    <!-- Loaded dynamically -->
-                  </div>
-                </div>
-
-                <div class="form-group">
-                  <label for="outline-title-suggestion">Suggested SEO Title</label>
-                  <input type="text" id="outline-title-suggestion" placeholder="SEO Optimized Title">
-                </div>
-
-                <div class="form-group">
-                  <label for="outline-meta-suggestion">Suggested Meta Description</label>
-                  <textarea id="outline-meta-suggestion" placeholder="SEO Optimized Meta Description" rows="2"></textarea>
-                </div>
-
-                <div class="form-group">
-                  <label for="outline-structure-editor">Outline Structure (Markdown)</label>
-                  <textarea id="outline-structure-editor" placeholder="Outline Structure" rows="8"></textarea>
-                </div>
-
-                <div class="outline-nav-actions" style="display: flex; gap: 10px; margin-top: 15px;">
-                  <button class="btn btn-secondary" id="btn-back-to-step-1" style="flex: 1;">
-                    <i data-lucide="arrow-left"></i> Back
-                  </button>
-                  <button class="btn btn-primary" id="btn-approve-outline" style="flex: 1.5;">
-                    <span>2. Generate Content</span> <i data-lucide="arrow-right"></i>
-                  </button>
-                </div>
               </div>
 
             </div>
 
-            <!-- Center panel: Text editor & live preview (Wizard Step 3 & 4) -->
+            <!-- Center panel: Text editor & live preview (Wizard Step 2 & 3) -->
             <div class="generator-workspace">
               
               <div class="workspace-header card">
                 <div class="editor-title-container">
                   <input type="text" id="article-title-input" placeholder="Article Title" readonly>
                 </div>
-                <div class="workspace-actions">
-                  <button class="btn btn-secondary" id="btn-save-draft" disabled>
+                <div class="workspace-actions" style="display: flex; gap: 8px; align-items: center;">
+                  <button class="btn btn-secondary" id="btn-save-draft" disabled style="width: auto;">
                     <i data-lucide="save"></i> Save Draft
                   </button>
-                  <button class="btn btn-accent" id="btn-preview-publish" disabled>
-                    <i data-lucide="share-2"></i> Preview & Publish
+                  <button class="btn btn-secondary" id="btn-preview-content" disabled style="width: auto;">
+                    <i data-lucide="eye"></i> Preview
+                  </button>
+                  <div class="dropdown-wrapper" style="position: relative;">
+                    <button class="btn btn-accent" id="btn-publish-dropdown" disabled style="width: auto;">
+                      <i data-lucide="send"></i> Publish <i data-lucide="chevron-down" style="width:12px; height:12px; margin-left:4px;"></i>
+                    </button>
+                    <div class="dropdown-menu hidden" id="publish-dropdown-menu" style="position: absolute; right: 0; top: 100%; background: #110e1a; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; width: 180px; box-shadow: var(--shadow-modal); display: flex; flex-direction: column; padding: 4px; margin-top: 6px;">
+                      <button class="dropdown-item" id="btn-pub-linkedin" style="background: none; border: none; color: #fff; padding: 10px 14px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: var(--font-main); font-size: 13px; border-radius: 6px; width: 100%;">
+                        <i data-lucide="linkedin" class="icon-linkedin" style="width: 14px; height: 14px;"></i> LinkedIn
+                      </button>
+                      <button class="dropdown-item" id="btn-pub-synq-blog" style="background: none; border: none; color: #fff; padding: 10px 14px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: var(--font-main); font-size: 13px; border-radius: 6px; width: 100%;">
+                        <i data-lucide="book-open" style="width: 14px; height: 14px; color: var(--color-primary);"></i> SynQ Blog
+                      </button>
+                    </div>
+                  </div>
+                  <button class="btn btn-primary" id="btn-next-to-audit" style="width: auto; display: none;">
+                    <span>Next: Audit</span> <i data-lucide="arrow-right"></i>
+                  </button>
+                  <button class="btn btn-primary" id="btn-next-to-publish" style="width: auto; display: none;">
+                    <span>Next: Publish</span> <i data-lucide="arrow-right"></i>
                   </button>
                 </div>
               </div>
@@ -281,7 +254,7 @@
                     <i data-lucide="pen-tool"></i>
                   </div>
                   <h3>Your Creative Workspace</h3>
-                  <p>Begin by filling out the SEO input layer parameters on the left and clicking "Detect Intent & Plan Outline". The wizard will guide you to generating and auditing your content.</p>
+                  <p>Begin by filling out the SEO input layer parameters on the left and clicking "Auto-Generate & Audit". The bot will immediately weave your content and run the SEO audit dashboard checks.</p>
                 </div>
 
                 <!-- Active Editor Textarea -->
@@ -577,63 +550,79 @@
 
   </div>
 
-  <!-- LINKEDIN PREVIEW & PUBLISH MODAL -->
+  <!-- PREVIEW MODAL -->
   <div class="modal-backdrop hidden" id="publish-modal">
     <div class="modal-card">
       <div class="modal-header">
-        <h3><i data-lucide="linkedin" class="icon-linkedin"></i> LinkedIn Feed Publisher</h3>
+        <h3><i data-lucide="eye"></i> Content Previewer</h3>
         <button class="modal-close" id="btn-close-modal"><i data-lucide="x"></i></button>
       </div>
       
       <div class="modal-body">
-        <p class="modal-desc">Here is how your SynQ Social post will look on LinkedIn. Review formatting before sharing.</p>
-        
-        <!-- LinkedIn Mock Feed Item -->
-        <div class="linkedin-post-card">
-          <div class="li-header">
-            <div class="li-avatar" id="li-post-avatar">SQ</div>
-            <div class="li-author-meta">
-              <span class="li-name" id="li-post-author">SynQ Social Explorer</span>
-              <span class="li-title" id="li-post-title">Digital Wellness Advocate, SynQ Social</span>
-              <span class="li-time">Just now • <i data-lucide="globe"></i></span>
-            </div>
-            <button class="li-more-btn"><i data-lucide="more-horizontal"></i></button>
-          </div>
-          
-          <div class="li-content">
-            <h4 class="li-post-heading" id="li-post-headline-text">Title of Post</h4>
-            <div class="li-body-text" id="li-post-body-text">
-              Post body goes here...
-            </div>
-          </div>
+        <!-- Preview Tabs Toggle -->
+        <div class="modal-tabs" style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px;">
+          <button class="tb-btn active" id="modal-tab-linkedin" style="padding: 8px 12px; font-size: 12px; font-weight:600;"><i data-lucide="linkedin" class="icon-linkedin"></i> LinkedIn Feed</button>
+          <button class="tb-btn" id="modal-tab-blog" style="padding: 8px 12px; font-size: 12px; font-weight:600;"><i data-lucide="book-open" style="color: var(--color-primary);"></i> SynQ Blog Article</button>
+        </div>
 
-          <div class="li-reactions">
-            <div class="li-react-icons">
-              <span class="react-thumb"><i data-lucide="thumbs-up"></i></span>
-              <span class="react-heart"><i data-lucide="heart"></i></span>
-              <span class="react-insight"><i data-lucide="award"></i></span>
-              <span class="react-count">42</span>
+        <p class="modal-desc" id="modal-desc-text">Review your post as it will appear on LinkedIn.</p>
+        
+        <!-- Tab 1: LinkedIn Mock Feed Item -->
+        <div id="preview-linkedin-wrap">
+          <div class="linkedin-post-card">
+            <div class="li-header">
+              <div class="li-avatar" id="li-post-avatar">SQ</div>
+              <div class="li-author-meta">
+                <span class="li-name" id="li-post-author">SynQ Social Explorer</span>
+                <span class="li-title" id="li-post-title">Digital Wellness Advocate, SynQ Social</span>
+                <span class="li-time">Just now • <i data-lucide="globe"></i></span>
+              </div>
+              <button class="li-more-btn"><i data-lucide="more-horizontal"></i></button>
             </div>
-            <div class="li-react-comments">
-              <span>9 comments • 4 shares</span>
+            
+            <div class="li-content">
+              <h4 class="li-post-heading" id="li-post-headline-text">Title of Post</h4>
+              <div class="li-body-text" id="li-post-body-text">
+                Post body goes here...
+              </div>
+            </div>
+
+            <div class="li-reactions">
+              <div class="li-react-icons">
+                <span class="react-thumb"><i data-lucide="thumbs-up"></i></span>
+                <span class="react-heart"><i data-lucide="heart"></i></span>
+                <span class="react-insight"><i data-lucide="award"></i></span>
+                <span class="react-count">42</span>
+              </div>
+              <div class="li-react-comments">
+                <span>9 comments • 4 shares</span>
+              </div>
+            </div>
+            
+            <div class="li-actions">
+              <button class="li-act-btn"><i data-lucide="thumbs-up"></i> <span>Like</span></button>
+              <button class="li-act-btn"><i data-lucide="message-square"></i> <span>Comment</span></button>
+              <button class="li-act-btn"><i data-lucide="repeat"></i> <span>Repost</span></button>
+              <button class="li-act-btn"><i data-lucide="send"></i> <span>Send</span></button>
             </div>
           </div>
-          
-          <div class="li-actions">
-            <button class="li-act-btn"><i data-lucide="thumbs-up"></i> <span>Like</span></button>
-            <button class="li-act-btn"><i data-lucide="message-square"></i> <span>Comment</span></button>
-            <button class="li-act-btn"><i data-lucide="repeat"></i> <span>Repost</span></button>
-            <button class="li-act-btn"><i data-lucide="send"></i> <span>Send</span></button>
+        </div>
+
+        <!-- Tab 2: SynQ Blog Article Preview -->
+        <div id="preview-blog-wrap" class="hidden">
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 255, 255, 0.05); border-radius: 12px; padding: 20px; max-height: 40vh; overflow-y: auto;">
+            <h2 id="blog-preview-title" style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: #fff; margin-bottom: 12px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 8px;"></h2>
+            <div id="blog-preview-body" class="markdown-preview-pane"></div>
           </div>
         </div>
       </div>
 
       <div class="modal-footer">
         <button class="btn btn-secondary" id="btn-copy-post-text">
-          <i data-lucide="copy"></i> Copy Content
+          <i data-lucide="copy"></i> Copy Preview Text
         </button>
-        <button class="btn btn-accent" id="btn-confirm-publish">
-          <i data-lucide="send"></i> Publish to Social Media
+        <button class="btn btn-primary" id="btn-close-modal-footer">
+          Close Preview
         </button>
       </div>
     </div>

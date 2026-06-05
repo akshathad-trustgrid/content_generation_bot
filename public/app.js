@@ -21,12 +21,12 @@ const state = {
   seoMetadata: {
     primaryKeyword: '',
     secondaryKeywords: [],
-    targetAudience: 'Gen Z, Digital Natives',
-    searchIntent: 'Informational',
-    contentType: 'Blog Post',
-    targetCountry: 'United States',
+    targetAudience: '',
+    searchIntent: '',
+    contentType: '',
+    targetCountry: '',
     competitorUrls: [],
-    brandTone: 'Philosophical, Youthful, Rebellious'
+    brandTone: ''
   },
   outline: null,
   detectedIntent: { type: 'Informational', goal: 'Teach' },
@@ -213,12 +213,12 @@ function loadArticleIntoWorkspace(article) {
   state.seoMetadata = article.seoMetadata || {
     primaryKeyword: article.title || '',
     secondaryKeywords: article.keywords || [],
-    targetAudience: 'Gen Z, Digital Natives',
-    searchIntent: 'Informational',
-    contentType: 'Blog Post',
-    targetCountry: 'United States',
+    targetAudience: '',
+    searchIntent: '',
+    contentType: '',
+    targetCountry: '',
     competitorUrls: [],
-    brandTone: 'Philosophical, Youthful, Rebellious'
+    brandTone: ''
   };
   state.outline = article.outline || null;
   state.semanticKeywords = (article.outline && article.outline.semanticKeywords) || article.keywords || [];
@@ -228,10 +228,10 @@ function loadArticleIntoWorkspace(article) {
   document.getElementById('seo-secondary-keywords').value = state.seoMetadata.secondaryKeywords.join(', ');
   document.getElementById('seo-target-audience').value = state.seoMetadata.targetAudience;
   document.getElementById('seo-intent-type').value = state.seoMetadata.searchIntent;
-  document.getElementById('seo-intent-goal').value = intentGoals[state.seoMetadata.searchIntent] || 'Teach';
+  document.getElementById('seo-intent-goal').value = intentGoals[state.seoMetadata.searchIntent] || '';
   document.getElementById('seo-content-type').value = state.seoMetadata.contentType;
   document.getElementById('seo-target-country').value = state.seoMetadata.targetCountry;
-  document.getElementById('seo-competitor-urls').value = state.seoMetadata.competitorUrls.join('\n');
+  document.getElementById('seo-competitor-urls').value = (state.seoMetadata.competitorUrls || []).join('\n');
   document.getElementById('seo-brand-tone').value = state.seoMetadata.brandTone;
 
   // Show refinement panel
@@ -240,7 +240,8 @@ function loadArticleIntoWorkspace(article) {
 
   // Enable action buttons
   document.getElementById('btn-save-draft').disabled = false;
-  document.getElementById('btn-preview-publish').disabled = false;
+  document.getElementById('btn-preview-content').disabled = false;
+  document.getElementById('btn-publish-dropdown').disabled = false;
 
   // Un-hide workspace if empty
   document.getElementById('editor-empty').classList.add('hidden');
@@ -268,7 +269,7 @@ function startNewArticle() {
   // Clear workspace active article
   state.activeArticle = null;
   state.outline = null;
-  state.detectedIntent = { type: 'Informational', goal: 'Teach' };
+  state.detectedIntent = { type: '', goal: '' };
   state.semanticKeywords = [];
   state.selectedKeywords.clear();
 
@@ -276,31 +277,24 @@ function startNewArticle() {
   state.seoMetadata = {
     primaryKeyword: '',
     secondaryKeywords: [],
-    targetAudience: 'Gen Z, Digital Natives',
-    searchIntent: 'Informational',
-    contentType: 'Blog Post',
-    targetCountry: 'United States',
+    targetAudience: '',
+    searchIntent: '',
+    contentType: '',
+    targetCountry: '',
     competitorUrls: [],
-    brandTone: 'Philosophical, Youthful, Rebellious'
+    brandTone: ''
   };
 
   // Reset Wizard step 1 forms
   document.getElementById('seo-primary-keyword').value = '';
   document.getElementById('seo-secondary-keywords').value = '';
-  document.getElementById('seo-target-audience').value = 'Gen Z, Digital Natives';
-  document.getElementById('seo-intent-type').value = 'Informational';
-  document.getElementById('seo-intent-goal').value = 'Teach';
-  document.getElementById('seo-content-type').value = 'Blog Post';
-  document.getElementById('seo-target-country').value = 'United States';
+  document.getElementById('seo-target-audience').value = '';
+  document.getElementById('seo-intent-type').value = '';
+  document.getElementById('seo-intent-goal').value = '';
+  document.getElementById('seo-content-type').value = '';
+  document.getElementById('seo-target-country').value = '';
   document.getElementById('seo-competitor-urls').value = '';
-  document.getElementById('seo-brand-tone').value = 'Philosophical, Youthful, Rebellious';
-
-  // Reset Wizard step 2 outline suggestion forms
-  document.getElementById('outline-title-suggestion').value = '';
-  document.getElementById('outline-meta-suggestion').value = '';
-  document.getElementById('outline-structure-editor').value = '';
-  const tagContainer = document.getElementById('semantic-keywords-tags');
-  if (tagContainer) tagContainer.innerHTML = '';
+  document.getElementById('seo-brand-tone').value = '';
 
   // Reset editor text areas
   document.getElementById('article-title-input').value = '';
@@ -315,7 +309,8 @@ function startNewArticle() {
 
   // Disable workspace action buttons
   document.getElementById('btn-save-draft').disabled = true;
-  document.getElementById('btn-preview-publish').disabled = true;
+  document.getElementById('btn-preview-content').disabled = true;
+  document.getElementById('btn-publish-dropdown').disabled = true;
 
   // Toggle visible workspace nodes back to empty state
   document.getElementById('editor-empty').classList.remove('hidden');
@@ -387,7 +382,7 @@ function setStep(stepNum) {
   state.currentStep = stepNum;
   
   // Update step indicators
-  for (let i = 1; i <= 5; i++) {
+  for (let i = 1; i <= 4; i++) {
     const indicator = document.getElementById(`step-${i}-indicator`);
     if (!indicator) continue;
     
@@ -403,46 +398,45 @@ function setStep(stepNum) {
   const layoutEl = document.querySelector('.generator-layout');
   if (layoutEl) {
     layoutEl.classList.remove('step-setup', 'step-writing', 'step-audit');
-    if (stepNum === 1 || stepNum === 2) {
+    if (stepNum === 1) {
       layoutEl.classList.add('step-setup');
-    } else if (stepNum === 3) {
+    } else if (stepNum === 2) {
       layoutEl.classList.add('step-writing');
-    } else if (stepNum === 4) {
+    } else if (stepNum === 3 || stepNum === 4) {
       layoutEl.classList.add('step-audit');
     }
   }
 
-  // Toggle Left Panels
+  // Toggle Panels
   const panelStep1 = document.getElementById('panel-step-1');
-  const panelStep2 = document.getElementById('panel-step-2');
   const sidebarLeft = document.querySelector('.generator-sidebar-left');
+  
+  // Update header actions visibility based on active step
+  const btnNextToAudit = document.getElementById('btn-next-to-audit');
+  const btnNextToPublish = document.getElementById('btn-next-to-publish');
   
   if (stepNum === 1) {
     if (sidebarLeft) sidebarLeft.classList.remove('hidden');
     if (panelStep1) panelStep1.classList.remove('hidden');
-    if (panelStep2) panelStep2.classList.add('hidden');
     
     document.getElementById('editor-empty').classList.remove('hidden');
     document.getElementById('editor-wrapper').classList.add('hidden');
     document.getElementById('seo-audit-sidebar').classList.add('hidden');
     document.getElementById('refinement-container').classList.add('hidden');
+    
+    if (btnNextToAudit) btnNextToAudit.style.display = 'none';
+    if (btnNextToPublish) btnNextToPublish.style.display = 'none';
   } else if (stepNum === 2) {
-    if (sidebarLeft) sidebarLeft.classList.remove('hidden');
-    if (panelStep1) panelStep1.classList.add('hidden');
-    if (panelStep2) panelStep2.classList.remove('hidden');
-    
-    document.getElementById('editor-empty').classList.remove('hidden');
-    document.getElementById('editor-wrapper').classList.add('hidden');
-    document.getElementById('seo-audit-sidebar').classList.add('hidden');
-    document.getElementById('refinement-container').classList.add('hidden');
-  } else if (stepNum === 3) {
     if (sidebarLeft) sidebarLeft.classList.add('hidden');
     
     document.getElementById('editor-empty').classList.add('hidden');
     document.getElementById('editor-wrapper').classList.remove('hidden');
     document.getElementById('seo-audit-sidebar').classList.add('hidden');
     document.getElementById('refinement-container').classList.add('hidden');
-  } else if (stepNum === 4) {
+    
+    if (btnNextToAudit) btnNextToAudit.style.display = 'inline-flex';
+    if (btnNextToPublish) btnNextToPublish.style.display = 'none';
+  } else if (stepNum === 3) {
     if (sidebarLeft) sidebarLeft.classList.add('hidden');
     
     document.getElementById('editor-empty').classList.add('hidden');
@@ -450,9 +444,12 @@ function setStep(stepNum) {
     document.getElementById('seo-audit-sidebar').classList.remove('hidden');
     document.getElementById('refinement-container').classList.remove('hidden');
     
+    if (btnNextToAudit) btnNextToAudit.style.display = 'none';
+    if (btnNextToPublish) btnNextToPublish.style.display = 'inline-flex';
+    
     // Trigger SEO Audit
     runSeoAudit();
-  } else if (stepNum === 5) {
+  } else if (stepNum === 4) {
     openPublishModal();
   }
 }
@@ -483,36 +480,20 @@ async function handleAutoGenerate() {
     brandTone
   };
 
-  startLoadingOverlay('Step 1/2: Designing SEO Outline & Intent Analysis...');
+  document.body.classList.add('is-processing');
+  startLoadingOverlay('Contacting Ollama AI Content Engine...');
 
   try {
-    // 1. Fetch search intent analysis and outline behind the scenes
-    const res = await fetch('/api/articles/plan-outline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seoMetadata: state.seoMetadata })
-    });
-    
-    if (!res.ok) {
-      throw new Error(`Outline planning failed: ${res.statusText}`);
-    }
-    
-    const data = await res.json();
-    state.outline = data.outline;
-    state.detectedIntent = data.detectedIntent;
-    state.semanticKeywords = data.semanticKeywords || [];
+    // Automatically transition UI to Step 2 (Editor View) showing live generation
+    setStep(2);
 
-    // Automatically transit UI to Step 3 (Editor View) showing live generation
-    setStep(3);
-    startLoadingOverlay('Step 2/2: Weaving SEO Article and AI social media copy...');
-
-    // 2. Trigger stream generation
+    // Trigger direct stream generation
     const response = await fetch('/api/articles/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         seoMetadata: state.seoMetadata,
-        outline: state.outline
+        outline: null
       })
     });
 
@@ -524,6 +505,7 @@ async function handleAutoGenerate() {
     const decoder = new TextDecoder();
     let buffer = '';
     let accumulatedText = '';
+    let firstChunkReceived = false;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -545,6 +527,10 @@ async function handleAutoGenerate() {
             }
             
             if (parsed.text) {
+              if (!firstChunkReceived) {
+                firstChunkReceived = true;
+                stopLoadingOverlay();
+              }
               accumulatedText += parsed.text;
               
               const metaStartTag = '[META_DESCRIPTION_START]';
@@ -566,7 +552,7 @@ async function handleAutoGenerate() {
                 displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
               }
               
-              let displayTitle = state.outline.title;
+              let displayTitle = primaryKeyword;
               const linesSplit = displayBody.split('\n');
               if (linesSplit[0] && linesSplit[0].startsWith('#')) {
                 displayTitle = linesSplit[0].replace(/^#\s*/, '').trim();
@@ -585,8 +571,8 @@ async function handleAutoGenerate() {
               loadArticleIntoWorkspace(parsed.article);
               await refreshLibrary();
 
-              // Automatically shift to Step 4 (SEO Audit page)
-              setStep(4);
+              // Automatically shift to Step 3 (SEO Audit page)
+              setStep(3);
               showToast('Article generated and SEO audited successfully!', 'success');
             }
 
@@ -598,192 +584,9 @@ async function handleAutoGenerate() {
   } catch (err) {
     showToast(err.message, 'error');
     setStep(1);
-  } finally {
     stopLoadingOverlay();
-  }
-}
-
-async function handlePlanOutline() {
-  const primaryKeyword = document.getElementById('seo-primary-keyword').value.trim();
-  if (!primaryKeyword) {
-    showToast('Primary Keyword is required.', 'warning');
-    return;
-  }
-  
-  const secondaryKeywords = document.getElementById('seo-secondary-keywords').value.split(',').map(s => s.trim()).filter(Boolean);
-  const targetAudience = document.getElementById('seo-target-audience').value.trim();
-  const searchIntent = document.getElementById('seo-intent-type').value;
-  const contentType = document.getElementById('seo-content-type').value;
-  const targetCountry = document.getElementById('seo-target-country').value.trim();
-  const competitorUrls = document.getElementById('seo-competitor-urls').value.split('\n').map(s => s.trim()).filter(Boolean);
-  const brandTone = document.getElementById('seo-brand-tone').value.trim();
-
-  state.seoMetadata = {
-    primaryKeyword,
-    secondaryKeywords,
-    targetAudience,
-    searchIntent,
-    contentType,
-    targetCountry,
-    competitorUrls,
-    brandTone
-  };
-
-  startLoadingOverlay('Detecting Search Intent & Planning Outline...');
-
-  try {
-    const res = await fetch('/api/articles/plan-outline', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ seoMetadata: state.seoMetadata })
-    });
-    
-    if (!res.ok) {
-      throw new Error(`Outline planning failed: ${res.statusText}`);
-    }
-    
-    const data = await res.json();
-    
-    state.outline = data.outline;
-    state.detectedIntent = data.detectedIntent;
-    state.semanticKeywords = data.semanticKeywords || [];
-    
-    // Populate Outline approval panel fields
-    document.getElementById('detected-intent-badge').innerText = `Intent: ${data.detectedIntent.type}`;
-    document.getElementById('detected-goal-badge').innerText = `Goal: ${data.detectedIntent.goal}`;
-    
-    const tagContainer = document.getElementById('semantic-keywords-tags');
-    tagContainer.innerHTML = '';
-    state.semanticKeywords.forEach(kw => {
-      const tag = document.createElement('span');
-      tag.className = 'semantic-tag';
-      tag.innerText = kw;
-      tag.title = 'Click to copy';
-      tag.addEventListener('click', () => {
-        navigator.clipboard.writeText(kw);
-        showToast(`Copied NLP term: "${kw}"`);
-      });
-      tagContainer.appendChild(tag);
-    });
-    
-    document.getElementById('outline-title-suggestion').value = data.outline.title || '';
-    document.getElementById('outline-meta-suggestion').value = data.outline.metaDescription || '';
-    document.getElementById('outline-structure-editor').value = data.outline.structure || '';
-    
-    setStep(2);
-    showToast('Search intent detected and outline planned!', 'success');
-  } catch (err) {
-    showToast(err.message, 'error');
   } finally {
-    stopLoadingOverlay();
-  }
-}
-
-async function handleApproveAndGenerate() {
-  const title = document.getElementById('outline-title-suggestion').value.trim();
-  const metaDescription = document.getElementById('outline-meta-suggestion').value.trim();
-  const structure = document.getElementById('outline-structure-editor').value.trim();
-  
-  if (!title || !structure) {
-    showToast('Outline Title and Structure are required.', 'warning');
-    return;
-  }
-  
-  state.outline = { title, metaDescription, structure };
-  setStep(3);
-  
-  startLoadingOverlay('Weaving structured SEO article...');
-  
-  try {
-    const response = await fetch('/api/articles/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        seoMetadata: state.seoMetadata,
-        outline: state.outline
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Generation failed with HTTP status ${response.status}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
-    let accumulatedText = '';
-
-    while (true) {
-      const { value, done } = await reader.read();
-      if (done) break;
-      
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
-      buffer = lines.pop();
-
-      for (const line of lines) {
-        const cleanLine = line.trim();
-        if (cleanLine.startsWith('data: ')) {
-          const rawData = cleanLine.slice(6);
-          try {
-            const parsed = JSON.parse(rawData);
-            
-            if (parsed.error) {
-              throw new Error(parsed.error);
-            }
-            
-            if (parsed.text) {
-              accumulatedText += parsed.text;
-              
-              const metaStartTag = '[META_DESCRIPTION_START]';
-              const metaEndTag = '[META_DESCRIPTION_END]';
-              let displayBody = accumulatedText;
-              
-              if (displayBody.includes(metaStartTag) && displayBody.includes(metaEndTag)) {
-                const endIdx = displayBody.indexOf(metaEndTag) + metaEndTag.length;
-                displayBody = displayBody.substring(endIdx).trim();
-              } else if (displayBody.includes(metaStartTag)) {
-                displayBody = displayBody.substring(displayBody.indexOf(metaStartTag)).trim();
-              }
-              
-              const socialStartTag = '[SOCIAL_POST_START]';
-              const socialEndTag = '[SOCIAL_POST_END]';
-              if (displayBody.includes(socialStartTag) && displayBody.includes(socialEndTag)) {
-                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
-              } else if (displayBody.includes(socialStartTag)) {
-                displayBody = displayBody.substring(0, displayBody.indexOf(socialStartTag)).trim();
-              }
-              
-              let displayTitle = state.outline.title;
-              const linesSplit = displayBody.split('\n');
-              if (linesSplit[0] && linesSplit[0].startsWith('#')) {
-                displayTitle = linesSplit[0].replace(/^#\s*/, '').trim();
-                displayBody = linesSplit.slice(1).join('\n').trim();
-              }
-              
-              document.getElementById('article-title-input').value = displayTitle;
-              document.getElementById('article-editor-textarea').value = displayBody;
-              updateWordCount();
-            }
-
-            if (parsed.done && parsed.article) {
-              state.activeArticle = parsed.article;
-              
-              // Load the saved article (loads Step 4 and shows Toast)
-              loadArticleIntoWorkspace(parsed.article);
-              await refreshLibrary();
-            }
-
-          } catch (e) {}
-        }
-      }
-    }
-
-  } catch (err) {
-    showToast(err.message, 'error');
-    setStep(2);
-  } finally {
-    stopLoadingOverlay();
+    document.body.classList.remove('is-processing');
   }
 }
 
@@ -807,6 +610,7 @@ function runSeoAudit() {
   }
 
   let totalScore = 0;
+  const isSocial = state.seoMetadata.contentType === 'Social Article';
 
   const containsAny = (str, list) => list.some(item => str.toLowerCase().includes(item.toLowerCase()));
   const updateRuleState = (elementId, passed) => {
@@ -822,13 +626,34 @@ function runSeoAudit() {
   // 1. Title Check (15 pts)
   let titleScore = 0;
   const hasTitleKeyword = primaryKeyword ? title.toLowerCase().includes(primaryKeyword.toLowerCase()) : false;
-  const isTitleLengthOk = title.length >= 45 && title.length <= 65;
+  const isTitleLengthOk = isSocial ? (title.length >= 20 && title.length <= 80) : (title.length >= 45 && title.length <= 65);
   const hasTitleCtr = containsAny(title, ['best', 'reclaim', 'future', 'rebellious', 'free', 'privacy', 'trust', 'genuine', 'owner', 'why', 'how', 'escape', 'machine', 'ghost', 'wellness', 'social']);
   
   if (hasTitleKeyword) titleScore += 5;
   if (isTitleLengthOk) titleScore += 5;
   if (hasTitleCtr) titleScore += 5;
   
+  // Dynamic Title UI labels
+  if (isSocial) {
+    const titleHeader = document.querySelector('#audit-title .audit-item-title');
+    if (titleHeader) titleHeader.innerHTML = `<i data-lucide="type" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Hook / Hook Title`;
+    const r1 = document.getElementById('rule-title-keyword');
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook keyword included`;
+    const r2 = document.getElementById('rule-title-length');
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> 20-80 characters (<span id="title-char-count">0</span> chars)`;
+    const r3 = document.getElementById('rule-title-trigger');
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> CTR / Emotional words (e.g. Future, Reclaim)`;
+  } else {
+    const titleHeader = document.querySelector('#audit-title .audit-item-title');
+    if (titleHeader) titleHeader.innerHTML = `<i data-lucide="type" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Title Optimization`;
+    const r1 = document.getElementById('rule-title-keyword');
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Primary keyword included`;
+    const r2 = document.getElementById('rule-title-length');
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> 50–60 characters (<span id="title-char-count">0</span> chars)`;
+    const r3 = document.getElementById('rule-title-trigger');
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> CTR / Emotional words (e.g. Best, Reclaim, Future)`;
+  }
+
   document.getElementById('title-char-count').innerText = title.length;
   updateRuleState('rule-title-keyword', hasTitleKeyword);
   updateRuleState('rule-title-length', isTitleLengthOk);
@@ -839,18 +664,44 @@ function runSeoAudit() {
   statusTitle.innerHTML = titleScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
   totalScore += titleScore;
 
-  // 2. Meta Description Check (15 pts)
+  // 2. Meta Description / Hook Paragraph Check (15 pts)
   let metaScore = 0;
-  const hasMetaKeyword = primaryKeyword ? metaDescription.toLowerCase().includes(primaryKeyword.toLowerCase()) : false;
-  const isMetaLengthOk = metaDescription.length >= 130 && metaDescription.length <= 170;
-  const hasMetaCta = containsAny(metaDescription, ['read', 'discover', 'learn', 'join', 'start', 'explore', 'find', 'own', 'reclaim', 'why']);
+  const firstParagraph = content.split(/\n\n+/).filter(p => p.trim())[0] || '';
+  const hasMetaKeyword = primaryKeyword 
+    ? (isSocial ? firstParagraph.toLowerCase().includes(primaryKeyword.toLowerCase()) : metaDescription.toLowerCase().includes(primaryKeyword.toLowerCase()))
+    : false;
+  const isMetaLengthOk = isSocial 
+    ? (firstParagraph.length >= 100 && firstParagraph.length <= 250) 
+    : (metaDescription.length >= 130 && metaDescription.length <= 170);
+  const hasMetaCta = containsAny(isSocial ? firstParagraph : metaDescription, ['read', 'discover', 'learn', 'join', 'start', 'explore', 'find', 'own', 'reclaim', 'why', '?', 'what', 'how']);
   
   if (hasMetaKeyword) metaScore += 5;
   if (isMetaLengthOk) metaScore += 5;
   if (hasMetaCta) metaScore += 5;
   
-  document.getElementById('meta-desc-text').innerText = metaDescription || 'No meta description found.';
-  document.getElementById('meta-char-count').innerText = metaDescription.length;
+  // Dynamic Meta UI labels
+  if (isSocial) {
+    const metaHeader = document.querySelector('#audit-meta .audit-item-title');
+    if (metaHeader) metaHeader.innerHTML = `<i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Hook Paragraph`;
+    const r1 = document.getElementById('rule-meta-length');
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook is 100-250 chars (<span id="meta-char-count">0</span> chars)`;
+    const r2 = document.getElementById('rule-meta-keyword');
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook keyword included`;
+    const r3 = document.getElementById('rule-meta-cta');
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook question / CTA included`;
+  } else {
+    const metaHeader = document.querySelector('#audit-meta .audit-item-title');
+    if (metaHeader) metaHeader.innerHTML = `<i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Meta Description`;
+    const r1 = document.getElementById('rule-meta-length');
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> 140–160 characters (<span id="meta-char-count">0</span> chars)`;
+    const r2 = document.getElementById('rule-meta-keyword');
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Keyword included`;
+    const r3 = document.getElementById('rule-meta-cta');
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> CTA included (e.g. read, learn, join)`;
+  }
+
+  document.getElementById('meta-desc-text').innerText = isSocial ? firstParagraph : (metaDescription || 'No meta description found.');
+  document.getElementById('meta-char-count').innerText = isSocial ? firstParagraph.length : metaDescription.length;
   updateRuleState('rule-meta-length', isMetaLengthOk);
   updateRuleState('rule-meta-keyword', hasMetaKeyword);
   updateRuleState('rule-meta-cta', hasMetaCta);
@@ -860,40 +711,86 @@ function runSeoAudit() {
   statusMeta.innerHTML = metaScore === 15 ? '<i data-lucide="check-circle"></i>' : '<i data-lucide="alert-circle"></i>';
   totalScore += metaScore;
 
-  // 3. Heading Structure Check (15 pts)
+  // 3. Heading Structure / Social Formatting Check (15 pts)
   let headingScore = 0;
-  const lines = content.split('\n');
-  const h1s = lines.filter(line => line.trim().startsWith('# '));
-  const countH1 = h1s.length;
   
-  let nestingValid = true;
-  let prevLevel = 1;
-  const headings = lines.filter(line => line.trim().startsWith('#')).map(line => {
-    const match = line.trim().match(/^(#{1,6})\s/);
-    return match ? match[1].length : null;
-  }).filter(Boolean);
-  
-  for (const h of headings) {
-    if (h - prevLevel > 1) {
-      nestingValid = false;
-      break;
-    }
-    prevLevel = h;
+  // Dynamic Headings UI labels
+  if (isSocial) {
+    const headingHeader = document.querySelector('#audit-headings .audit-item-title');
+    if (headingHeader) headingHeader.innerHTML = `<i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Social Formatting`;
+    const r1 = document.getElementById('rule-heading-h1');
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Clean style (No HTML/MD headers)`;
+    const r2 = document.getElementById('rule-heading-hierarchy');
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Double line breaks for mobile spacing`;
+    const r3 = document.getElementById('rule-heading-questions');
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Bullet points / emojis present`;
+    const r4 = document.getElementById('rule-heading-keyword');
+    if (r4) r4.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Under 3,000 characters limit (<span id="count-h1">0</span> chars)`;
+  } else {
+    const headingHeader = document.querySelector('#audit-headings .audit-item-title');
+    if (headingHeader) headingHeader.innerHTML = `<i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Heading Structure`;
+    const r1 = document.getElementById('rule-heading-h1');
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Exactly 1 H1 (<span id="count-h1">0</span>)`;
+    const r2 = document.getElementById('rule-heading-hierarchy');
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Proper H2/H3 nesting`;
+    const r3 = document.getElementById('rule-heading-questions');
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Question headings present`;
+    const r4 = document.getElementById('rule-heading-keyword');
+    if (r4) r4.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Keyword in headings`;
   }
-  
-  const headingQuestions = lines.some(line => line.trim().startsWith('#') && line.trim().endsWith('?'));
-  const headingKeyword = primaryKeyword ? lines.some(line => line.trim().startsWith('#') && line.toLowerCase().includes(primaryKeyword.toLowerCase())) : false;
-  
-  if (countH1 === 1) headingScore += 5;
-  if (nestingValid && headings.length > 0) headingScore += 4;
-  if (headingQuestions) headingScore += 3;
-  if (headingKeyword) headingScore += 3;
-  
-  document.getElementById('count-h1').innerText = countH1;
-  updateRuleState('rule-heading-h1', countH1 === 1);
-  updateRuleState('rule-heading-hierarchy', nestingValid && headings.length > 0);
-  updateRuleState('rule-heading-questions', headingQuestions);
-  updateRuleState('rule-heading-keyword', headingKeyword);
+
+  if (isSocial) {
+    const lines = content.split('\n');
+    const hasMdHeaders = lines.some(line => line.trim().startsWith('#'));
+    const cleanStyle = !hasMdHeaders;
+    const doubleLineBreaks = content.includes('\n\n');
+    const usesBulletsOrEmojis = containsAny(content, ['-', '*', '•', '✅', '🚀', '👉', '💡', '🔥', '📌', '✨', '✔']);
+    const underCharLimit = content.length <= 3000;
+
+    if (cleanStyle) headingScore += 4;
+    if (doubleLineBreaks) headingScore += 4;
+    if (usesBulletsOrEmojis) headingScore += 4;
+    if (underCharLimit) headingScore += 3;
+
+    document.getElementById('count-h1').innerText = content.length; // Show character count
+    updateRuleState('rule-heading-h1', cleanStyle);
+    updateRuleState('rule-heading-hierarchy', doubleLineBreaks);
+    updateRuleState('rule-heading-questions', usesBulletsOrEmojis);
+    updateRuleState('rule-heading-keyword', underCharLimit);
+  } else {
+    const lines = content.split('\n');
+    const h1s = lines.filter(line => line.trim().startsWith('# '));
+    const countH1 = h1s.length;
+    
+    let nestingValid = true;
+    let prevLevel = 1;
+    const headings = lines.filter(line => line.trim().startsWith('#')).map(line => {
+      const match = line.trim().match(/^(#{1,6})\s/);
+      return match ? match[1].length : null;
+    }).filter(Boolean);
+    
+    for (const h of headings) {
+      if (h - prevLevel > 1) {
+        nestingValid = false;
+        break;
+      }
+      prevLevel = h;
+    }
+    
+    const headingQuestions = lines.some(line => line.trim().startsWith('#') && line.trim().endsWith('?'));
+    const headingKeyword = primaryKeyword ? lines.some(line => line.trim().startsWith('#') && line.toLowerCase().includes(primaryKeyword.toLowerCase())) : false;
+    
+    if (countH1 === 1) headingScore += 5;
+    if (nestingValid && headings.length > 0) headingScore += 4;
+    if (headingQuestions) headingScore += 3;
+    if (headingKeyword) headingScore += 3;
+    
+    document.getElementById('count-h1').innerText = countH1;
+    updateRuleState('rule-heading-h1', countH1 === 1);
+    updateRuleState('rule-heading-hierarchy', nestingValid && headings.length > 0);
+    updateRuleState('rule-heading-questions', headingQuestions);
+    updateRuleState('rule-heading-keyword', headingKeyword);
+  }
   
   const statusHeadings = document.getElementById('status-headings');
   statusHeadings.className = `audit-status-icon ${headingScore === 15 ? 'success' : headingScore >= 7 ? 'warning' : 'danger'}`;
@@ -1086,6 +983,7 @@ async function handleRefineArticle() {
     return;
   }
 
+  document.body.classList.add('is-processing');
   document.getElementById('refine-prompt-input').value = '';
   startLoadingOverlay('Regenerating draft sections...');
 
@@ -1104,6 +1002,7 @@ async function handleRefineArticle() {
     const decoder = new TextDecoder();
     let buffer = '';
     let accumulatedText = '';
+    let firstChunkReceived = false;
 
     while (true) {
       const { value, done } = await reader.read();
@@ -1125,6 +1024,10 @@ async function handleRefineArticle() {
             }
 
             if (parsed.text) {
+              if (!firstChunkReceived) {
+                firstChunkReceived = true;
+                stopLoadingOverlay();
+              }
               accumulatedText += parsed.text;
               
               const metaStartTag = '[META_DESCRIPTION_START]';
@@ -1172,8 +1075,9 @@ async function handleRefineArticle() {
 
   } catch (err) {
     showToast(err.message, 'error');
-  } finally {
     stopLoadingOverlay();
+  } finally {
+    document.body.classList.remove('is-processing');
   }
 }
 
@@ -1265,6 +1169,14 @@ function openPublishModal() {
 
   document.getElementById('li-post-body-text').innerText = bodyText.trim();
 
+  // Setup Blog Preview tab elements
+  document.getElementById('blog-preview-title').innerText = title;
+  document.getElementById('blog-preview-body').innerHTML = parseMarkdown(rawContent);
+
+  // Reset to LinkedIn preview tab by default
+  const tabLinkedin = document.getElementById('modal-tab-linkedin');
+  if (tabLinkedin) tabLinkedin.click();
+
   // Show Modal
   document.getElementById('publish-modal').classList.remove('hidden');
   initLucide();
@@ -1272,39 +1184,40 @@ function openPublishModal() {
 
 function closePublishModal() {
   document.getElementById('publish-modal').classList.add('hidden');
+  if (state.currentStep === 4) {
+    setStep(3);
+  }
 }
 
-async function handleConfirmPublish() {
+async function handleConfirmPublishPlatform(platform) {
   if (!state.activeArticle) return;
 
-  try {
-    const res = await fetch(`/api/articles/${state.activeArticle.id}/publish`, {
-      method: 'POST'
-    });
+  document.body.classList.add('is-processing');
+  const url = platform === 'linkedin' 
+    ? `/api/articles/${state.activeArticle.id}/publish`
+    : `/api/articles/${state.activeArticle.id}/publish-synq`;
 
+  try {
+    const res = await fetch(url, { method: 'POST' });
     if (res.ok) {
       const data = await res.json();
       state.activeArticle = data.article;
-      
-      closePublishModal();
       await refreshLibrary();
       
-      if (data.webhookStatus && data.webhookStatus.triggered) {
+      let successMsg = `Published successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}!`;
+      if (platform === 'linkedin' && data.webhookStatus && data.webhookStatus.triggered) {
         if (data.webhookStatus.success) {
-          showToast('Published successfully! LinkedIn webhook triggered.', 'success');
+          successMsg = 'Published successfully! LinkedIn webhook triggered.';
         } else {
-          showToast(`Published locally, but webhook failed: ${data.webhookStatus.error}`, 'error');
+          successMsg = `Published locally, but webhook failed: ${data.webhookStatus.error}`;
         }
-      } else {
-        showToast('Published successfully to LinkedIn (mock mode, no webhook URL).', 'success');
       }
       
-      // Trigger celebrate confetti!
+      showToast(successMsg, 'success');
       triggerConfetti();
 
-      // Prompt user to start next article workspace after successfully publishing
       setTimeout(() => {
-        if (confirm("Article published successfully! Do you want to start a new workspace for your next article?")) {
+        if (confirm(`Article published successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}! Do you want to start a new workspace for your next article?`)) {
           startNewArticle();
         }
       }, 1000);
@@ -1313,17 +1226,28 @@ async function handleConfirmPublish() {
       showToast(errData.error || 'Error publishing article.', 'error');
     }
   } catch (err) {
-    showToast('Error publishing article to social webhook.', 'error');
+    showToast(`Error publishing article to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}.`, 'error');
+  } finally {
+    document.body.classList.remove('is-processing');
   }
 }
 
 function handleCopyPostText() {
-  const headline = document.getElementById('li-post-headline-text').innerText;
-  const body = document.getElementById('li-post-body-text').innerText;
-  const fullPostText = `${headline}\n\n${body}`;
+  const activeTab = document.getElementById('modal-tab-linkedin').classList.contains('active') ? 'linkedin' : 'blog';
+  let copyText = '';
+  
+  if (activeTab === 'linkedin') {
+    const headline = document.getElementById('li-post-headline-text').innerText;
+    const body = document.getElementById('li-post-body-text').innerText;
+    copyText = `${headline}\n\n${body}`;
+  } else {
+    const headline = document.getElementById('blog-preview-title').innerText;
+    const body = document.getElementById('article-editor-textarea').value;
+    copyText = `# ${headline}\n\n${body}`;
+  }
 
-  navigator.clipboard.writeText(fullPostText);
-  showToast('LinkedIn post text copied!', 'success');
+  navigator.clipboard.writeText(copyText);
+  showToast('Content copied to clipboard!', 'success');
 }
 
 // --------------------------------------------------------------------------
@@ -1494,7 +1418,7 @@ function updateStats() {
   document.getElementById('stats-published').innerText = published;
   document.getElementById('library-count').innerText = state.articles.length;
 
-  if (state.activeArticle && state.currentStep >= 4) {
+  if (state.activeArticle && state.currentStep >= 3) {
     runSeoAudit();
   } else {
     document.getElementById('stats-keywords').innerText = '0%';
@@ -1529,7 +1453,7 @@ function switchTab(tabId) {
   if (tabId === 'generator') {
     title.innerText = 'Content Workspace';
     subtitle.innerText = 'Draft, refine, and publish cinematic content in favor of SynQ Social';
-    if (state.activeArticle && state.currentStep >= 4) {
+    if (state.activeArticle && state.currentStep >= 3) {
       runSeoAudit();
     }
   } else if (tabId === 'library') {
@@ -1561,21 +1485,112 @@ function setupEventListeners() {
   }
 
   // Stepper Indicator click nav
-  document.getElementById('step-1-indicator').addEventListener('click', () => {
-    if (state.currentStep > 1) setStep(1);
-  });
-  document.getElementById('step-2-indicator').addEventListener('click', () => {
-    if (state.currentStep > 2) setStep(2);
-  });
-  document.getElementById('step-3-indicator').addEventListener('click', () => {
-    if (state.currentStep > 3) setStep(3);
-  });
-  document.getElementById('step-4-indicator').addEventListener('click', () => {
-    if (state.currentStep > 4) setStep(4);
-  });
-  document.getElementById('step-5-indicator').addEventListener('click', () => {
-    if (state.currentStep >= 4) openPublishModal();
-  });
+  const step1Ind = document.getElementById('step-1-indicator');
+  if (step1Ind) {
+    step1Ind.addEventListener('click', () => {
+      setStep(1);
+    });
+  }
+  const step2Ind = document.getElementById('step-2-indicator');
+  if (step2Ind) {
+    step2Ind.addEventListener('click', () => {
+      if (state.activeArticle || state.currentStep >= 2) setStep(2);
+    });
+  }
+  const step3Ind = document.getElementById('step-3-indicator');
+  if (step3Ind) {
+    step3Ind.addEventListener('click', () => {
+      if (state.activeArticle || state.currentStep >= 3) setStep(3);
+    });
+  }
+  const step4Ind = document.getElementById('step-4-indicator');
+  if (step4Ind) {
+    step4Ind.addEventListener('click', () => {
+      if (state.activeArticle || state.currentStep >= 4) setStep(4);
+    });
+  }
+
+  // Next Buttons navigation
+  const btnNextToStep2 = document.getElementById('btn-next-to-step-2');
+  if (btnNextToStep2) {
+    btnNextToStep2.addEventListener('click', () => setStep(2));
+  }
+  const btnNextToAudit = document.getElementById('btn-next-to-audit');
+  if (btnNextToAudit) {
+    btnNextToAudit.addEventListener('click', () => setStep(3));
+  }
+  const btnNextToPublish = document.getElementById('btn-next-to-publish');
+  if (btnNextToPublish) {
+    btnNextToPublish.addEventListener('click', () => setStep(4));
+  }
+
+  // Preview / Publish dropdown triggers
+  const btnPreviewContent = document.getElementById('btn-preview-content');
+  if (btnPreviewContent) {
+    btnPreviewContent.addEventListener('click', openPublishModal);
+  }
+
+  const btnPublishDropdown = document.getElementById('btn-publish-dropdown');
+  const publishDropdownMenu = document.getElementById('publish-dropdown-menu');
+  if (btnPublishDropdown && publishDropdownMenu) {
+    btnPublishDropdown.addEventListener('click', (e) => {
+      e.stopPropagation();
+      publishDropdownMenu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', (e) => {
+      if (!publishDropdownMenu.classList.contains('hidden') && !btnPublishDropdown.contains(e.target)) {
+        publishDropdownMenu.classList.add('hidden');
+      }
+    });
+  }
+
+  const btnPubLinkedin = document.getElementById('btn-pub-linkedin');
+  if (btnPubLinkedin) {
+    btnPubLinkedin.addEventListener('click', () => {
+      if (publishDropdownMenu) publishDropdownMenu.classList.add('hidden');
+      handleConfirmPublishPlatform('linkedin');
+    });
+  }
+
+  const btnPubSynqBlog = document.getElementById('btn-pub-synq-blog');
+  if (btnPubSynqBlog) {
+    btnPubSynqBlog.addEventListener('click', () => {
+      if (publishDropdownMenu) publishDropdownMenu.classList.add('hidden');
+      handleConfirmPublishPlatform('synq-blog');
+    });
+  }
+
+  // Modal Preview Tabs
+  const modalTabLinkedin = document.getElementById('modal-tab-linkedin');
+  const modalTabBlog = document.getElementById('modal-tab-blog');
+  const previewLinkedinWrap = document.getElementById('preview-linkedin-wrap');
+  const previewBlogWrap = document.getElementById('preview-blog-wrap');
+  const modalDescText = document.getElementById('modal-desc-text');
+
+  if (modalTabLinkedin && modalTabBlog) {
+    modalTabLinkedin.addEventListener('click', () => {
+      modalTabLinkedin.classList.add('active');
+      modalTabBlog.classList.remove('active');
+      if (previewLinkedinWrap) previewLinkedinWrap.classList.remove('hidden');
+      if (previewBlogWrap) previewBlogWrap.classList.add('hidden');
+      if (modalDescText) modalDescText.innerText = 'Review your post as it will appear on LinkedIn.';
+    });
+
+    modalTabBlog.addEventListener('click', () => {
+      modalTabBlog.classList.add('active');
+      modalTabLinkedin.classList.remove('active');
+      if (previewBlogWrap) previewBlogWrap.classList.remove('hidden');
+      if (previewLinkedinWrap) previewLinkedinWrap.classList.add('hidden');
+      if (modalDescText) modalDescText.innerText = 'Review your post as a blog article.';
+      
+      const title = document.getElementById('article-title-input').value.trim();
+      const rawContent = document.getElementById('article-editor-textarea').value;
+      const blogPreviewTitle = document.getElementById('blog-preview-title');
+      const blogPreviewBody = document.getElementById('blog-preview-body');
+      if (blogPreviewTitle) blogPreviewTitle.innerText = title;
+      if (blogPreviewBody) blogPreviewBody.innerHTML = parseMarkdown(rawContent);
+    });
+  }
 
   // Search Intent Type change listener to autofill goal
   const intentTypeSelect = document.getElementById('seo-intent-type');
@@ -1591,18 +1606,11 @@ function setupEventListeners() {
     autoGenBtn.addEventListener('click', handleAutoGenerate);
   }
 
-  // Step 1: Plan Outline click
-  document.getElementById('btn-plan-outline').addEventListener('click', handlePlanOutline);
-
-  // Step 2: Approve & back actions
-  document.getElementById('btn-back-to-step-1').addEventListener('click', () => setStep(1));
-  document.getElementById('btn-approve-outline').addEventListener('click', handleApproveAndGenerate);
-
   // Editor Key Press events for live word count and SEO audit
   const editorTextArea = document.getElementById('article-editor-textarea');
   editorTextArea.addEventListener('input', () => {
     updateWordCount();
-    if (state.currentStep >= 4) {
+    if (state.currentStep >= 3) {
       runSeoAudit();
     }
   });
@@ -1613,7 +1621,7 @@ function setupEventListeners() {
     if (state.activeArticle) {
       state.activeArticle.title = titleInput.value.trim();
     }
-    if (state.currentStep >= 4) {
+    if (state.currentStep >= 3) {
       runSeoAudit();
     }
   });
@@ -1639,13 +1647,10 @@ function setupEventListeners() {
   // Save Draft Button
   document.getElementById('btn-save-draft').addEventListener('click', handleSaveDraft);
 
-  // Preview & Publish trigger
-  document.getElementById('btn-preview-publish').addEventListener('click', () => setStep(5));
-
   // Modal Actions
   document.getElementById('btn-close-modal').addEventListener('click', closePublishModal);
+  document.getElementById('btn-close-modal-footer').addEventListener('click', closePublishModal);
   document.getElementById('btn-copy-post-text').addEventListener('click', handleCopyPostText);
-  document.getElementById('btn-confirm-publish').addEventListener('click', handleConfirmPublish);
 
   // Settings Actions
   document.getElementById('btn-save-settings').addEventListener('click', handleSaveSettings);

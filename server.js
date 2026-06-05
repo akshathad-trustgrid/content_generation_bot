@@ -149,7 +149,6 @@ function analyzeKeywords(text) {
 }
 
 // Generate the master system prompt containing brand values and reference guidelines
-// Generate the master system prompt containing brand values and reference guidelines
 function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) {
   const primary = seoMetadata.primaryKeyword || '';
   const secondary = seoMetadata.secondaryKeywords || legacyKeywords || [];
@@ -157,30 +156,17 @@ function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) 
   const audience = seoMetadata.targetAudience || 'Gen Z, Digital Natives';
   const intent = seoMetadata.searchIntent || 'Informational';
   const country = seoMetadata.targetCountry || 'United States';
+  const contentType = seoMetadata.contentType || 'Blog Post';
   
   const keywordsList = [primary, ...secondary].filter(Boolean);
   const keywordString = keywordsList.length > 0
     ? keywordsList.map(kw => `- "${kw}"`).join('\n')
     : `Please weave in keywords relating to decentralized social networks, privacy chat applications, and alternatives to mainstream media.`;
-  
-  let structureInstructions = '';
-  if (outline && outline.structure) {
-    structureInstructions = `You MUST write the article following this approved outline structure exactly:\n${outline.structure}\n`;
-  } else {
-    structureInstructions = `You must write the article following this recommended SEO structure:
-- Title (SEO Optimized)
-- Meta Description
-- H1
-- Introduction (Hook, Problem, Solution)
-- H2 Sections
-- H3 Subsections
-- Bullet points, tables, examples, statistics
-- FAQ Section
-- Conclusion
-- CTA (Call to Action)`;
-  }
 
-  return `You are a visionary content creator and digital wellness philosopher writing articles, thought-pieces, and social media posts on behalf of the brand "SynQ Social".
+  const isSocial = contentType === 'Social Article';
+
+  if (isSocial) {
+    return `You are a visionary content creator and digital wellness philosopher writing an engaging, ready-to-share social media article on behalf of the brand "SynQ Social".
 
 SynQ Social Reference Guide:
 - SynQ Social is a human-first digital ecosystem focused on privacy, digital ownership, emotional wellness, authentic connection, and decentralized internet culture.
@@ -196,50 +182,105 @@ SynQ Social Reference Guide:
 Brand Personality & Tone:
 - Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
 - CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros.
-- Content Themes: Digital ownership, Privacy, Surveillance culture, Social media addiction, Internet psychology, Doomscrolling, Attention economy, Online identity, Digital wellbeing, Human connection, Decentralization, Future of the internet.
+
+LinkedIn/Social Article Generation Specifications:
+1. Target Audience: ${audience}
+2. Search Intent Type: ${intent}
+3. Target Country: ${country}
+4. E-E-A-T & Freshness: Include real-world context and reference the current year 2026.
+5. LENGTH LIMIT: The entire article/post must be strictly under 2,800 characters (approx. 350-450 words) so it fits LinkedIn's character limit. This is a hard limit.
+6. FORMAT: Format as a single ready-to-post LinkedIn update. Use an attention-grabbing hook at the top, clear formatting with emojis and bullet points, double line breaks for mobile readability, and close with a question to drive engagement, followed by a few relevant hashtags.
+7. Do NOT use HTML headings (like # or ##) or meta description sections in the main text.
+8. Naturally, subtly, and contextually weave in these keywords:
+${keywordString}
+
+Format & Output Style:
+- Return your response strictly in Markdown.
+- Start your response directly with the H1/Title of the social article (e.g. "# Reclaiming the Quiet...").
+- Do NOT output [META_DESCRIPTION_START] or [SOCIAL_POST_START] tags. The entire generated text itself is the social article.
+- Do NOT include any conversational intro/outro text (such as "Here is your social article...").`;
+  }
+
+  // Blog posts and other standard SEO content types
+  let structureInstructions = '';
+  if (outline && outline.structure) {
+    structureInstructions = `You MUST write the article following this approved outline structure exactly:\n${outline.structure}\n`;
+  } else {
+    structureInstructions = `You must write the article following this recommended SEO structure:
+- Title (SEO Optimized, 45-65 characters)
+- Meta Description (SEO Optimized, 130-170 characters)
+- H1 (Title)
+- Introduction (Hook, Problem, Solution)
+- H2 Sections
+- H3 Subsections
+- Bullet points, tables, examples, statistics
+- FAQ Section
+- Conclusion
+- CTA (Call to Action)`;
+  }
+
+  return `You are a visionary content creator and digital wellness philosopher writing high-quality SEO articles on behalf of the brand "SynQ Social".
+
+SynQ Social Reference Guide:
+- SynQ Social is a human-first digital ecosystem focused on privacy, digital ownership, emotional wellness, authentic connection, and decentralized internet culture.
+- Modern social media platforms have become: Addictive, Performative, Surveillance-driven, Algorithm-controlled, Emotionally exhausting, and built to exploit attention instead of improving lives.
+- Key core ideas behind SynQ Social:
+  * People should own their digital identity and memories.
+  * Privacy is a fundamental human right.
+  * Real connection matters more than vanity metrics (likes, shares, followers).
+  * Social media should improve mental well-being, not exploit it.
+  * Technology must feel human again.
+  * The future internet should be decentralized, ethical, and user-first.
+
+Brand Personality & Tone:
+- Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
+- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros. Never use AI clichés like "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".
 
 SEO Content Generation Specifications:
 1. Target Audience: ${audience}
 2. Search Intent Type: ${intent}
 3. Target Country: ${country}
-4. E-E-A-T Optimization: Include real examples, mock/real statistics, original insights, and trust signals naturally.
-5. Content Freshness: Ensure the year used is 2026, incorporating current trends and latest statistics.
+4. E-E-A-T Optimization: Include real examples and mock/real statistics (using '%' symbols) naturally.
+5. Content Freshness: Reference the year 2026.
+6. Reading Ease: Use short sentences (under 20 words on average) and short paragraphs (under 65 words on average).
+7. Nesting: Use proper H2 and H3 headings. At least one heading must be a question (ending in a question mark). The primary keyword must be present in at least one heading.
 
 Structure instructions:
 ${structureInstructions}
 
 Keyword Integration:
-You must naturally, subtly, and contextually weave in the following keywords. Do NOT dump them all at once. They must read seamlessly and flow naturally within your cinematic paragraphs:
+You must naturally, subtly, and contextually weave in the following keywords. Do NOT dump them all at once. They must read seamlessly and flow naturally within your cinematic paragraphs (aim for a keyword density of 1.0% to 2.5% for the primary keyword):
 ${keywordString}
 
 Format & Output Style:
 - Return your response strictly in Markdown.
 - Start your response directly with the Meta Description block formatted exactly as:
 [META_DESCRIPTION_START]
-Your meta description goes here (140-160 characters).
+Your meta description goes here (130-170 characters, includes primary keyword and a call to action).
 [META_DESCRIPTION_END]
 - Then immediately follow with the Article content starting with the H1 (e.g. "# The Ghost in the Machine...").
 - At the very end of the article, append a dedicated social media post summary of the article suitable for direct posting to LinkedIn. Format it with an attention-grabbing hook/headline, double line breaks, bullet points with emojis, a question to drive comments, and relevant hashtags. Enclose this post copy exactly as:
 [SOCIAL_POST_START]
-Your ready-to-post LinkedIn copy goes here.
+Your ready-to-post LinkedIn copy goes here (strictly under 2,800 characters).
 [SOCIAL_POST_END]
 - Do NOT include any conversational intro/outro text (such as "Here is the article...").
 `;
 }
 
-const OUTLINE_SYSTEM_PROMPT = `You are an expert SEO Content Strategist. Your task is to perform keyword analysis, detect search intent, perform basic competitor outline planning, generate semantic entities, and construct an optimized outline.
-You must return your response strictly as a JSON object, with no other text, markdown wrapper, or conversational filler.
-The JSON must follow this exact format:
+const OUTLINE_SYSTEM_PROMPT = `You are an expert SEO Content Strategist. Your task is to perform keyword analysis, detect search intent, perform competitor planning, and generate structured outlines.
+You must return your response strictly as a JSON object.
+
+If the requested content type is "Social Article", return a plan focused on a high-impact, short-form narrative (no complex H2/H3 structures needed).
+If the requested content type is "Blog Post", return a comprehensive, SEO-optimized outline.
+
+JSON format:
 {
-  "detectedIntent": {
-    "type": "Informational | Commercial | Transactional",
-    "goal": "Teach | Compare | Convert"
-  },
-  "semanticKeywords": ["nlp keyword 1", "nlp keyword 2", "nlp keyword 3", "nlp keyword 4"],
+  "detectedIntent": { "type": "Informational | Commercial | Transactional", "goal": "Teach | Compare | Convert" },
+  "semanticKeywords": ["nlp keyword 1", "nlp keyword 2"],
   "outline": {
-    "title": "SEO Optimized Title Suggestion",
-    "metaDescription": "SEO Optimized Meta Description Suggestion (140-160 characters, with primary keyword and CTA)",
-    "structure": "Markdown list of the outline including H1, Introduction (Hook, Problem, Solution), H2/H3 headings, FAQ sections, Conclusion, and CTA"
+    "title": "SEO Optimized Title",
+    "metaDescription": "130-170 chars with CTA",
+    "structure": "Detailed markdown outline (if Blog Post) or narrative arc (if Social Article)"
   }
 }
 `;
@@ -340,7 +381,8 @@ app.post('/api/articles/:id/publish', async (req, res) => {
   // Update status in local database
   const updated = db.updateArticle(req.params.id, {
     status: 'published',
-    publishedAt: new Date().toISOString()
+    publishedAt: new Date().toISOString(),
+    publishedPlatform: 'linkedin'
   });
 
   const config = db.getConfig();
@@ -397,75 +439,25 @@ app.post('/api/articles/:id/publish', async (req, res) => {
   });
 });
 
-// 3.5. AI SEO Outline Planning Route
-app.post('/api/articles/plan-outline', async (req, res) => {
-  const { seoMetadata } = req.body;
-  if (!seoMetadata || !seoMetadata.primaryKeyword) {
-    return res.status(400).json({ error: 'Primary Keyword is required in seoMetadata' });
+// Mock SynQ Blog publishing
+app.post('/api/articles/:id/publish-synq', async (req, res) => {
+  const article = db.getArticle(req.params.id);
+  if (!article) {
+    return res.status(404).json({ error: 'Article not found' });
   }
 
-  const config = db.getConfig();
-  const userPrompt = `Please plan the SEO strategy and outline for:
-Primary Keyword: ${seoMetadata.primaryKeyword}
-Secondary Keywords: ${seoMetadata.secondaryKeywords ? seoMetadata.secondaryKeywords.join(', ') : 'None'}
-Target Audience: ${seoMetadata.targetAudience || 'General'}
-Search Intent: ${seoMetadata.searchIntent || 'Not specified'}
-Content Type: ${seoMetadata.contentType || 'Blog Post'}
-Target Country: ${seoMetadata.targetCountry || 'Global'}
-Competitor URLs: ${seoMetadata.competitorUrls ? seoMetadata.competitorUrls.join(', ') : 'None'}
-Brand Tone: ${seoMetadata.brandTone || 'Philosophical & Rebellious'}
-`;
+  // Update status in local database
+  const updated = db.updateArticle(req.params.id, {
+    status: 'published',
+    publishedAt: new Date().toISOString(),
+    publishedPlatform: 'synq-blog'
+  });
 
-  try {
-    const response = await fetch(`${config.ollamaUrl}/api/chat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: config.model,
-        messages: [
-          { role: 'system', content: OUTLINE_SYSTEM_PROMPT },
-          { role: 'user', content: userPrompt }
-        ],
-        stream: false,
-        options: {
-          temperature: 0.2
-        }
-      })
-    });
-
-    if (!response.ok) {
-      throw new Error(`Ollama returned status ${response.status}`);
-    }
-
-    const data = await response.json();
-    const resultText = data.message?.content || '';
-    
-    let jsonResult;
-    try {
-      const jsonMatch = resultText.match(/\{[\s\S]*\}/);
-      const cleanJson = jsonMatch ? jsonMatch[0] : resultText;
-      jsonResult = JSON.parse(cleanJson);
-    } catch (e) {
-      console.error('Failed to parse outline JSON, raw text:', resultText);
-      jsonResult = {
-        detectedIntent: {
-          type: seoMetadata.searchIntent || "Informational",
-          goal: "Teach"
-        },
-        semanticKeywords: ["privacy first network", "anonymous platform", "decentralized ecosystem"],
-        outline: {
-          title: `Optimized: ${seoMetadata.primaryKeyword}`,
-          metaDescription: `Discover the details about ${seoMetadata.primaryKeyword}. Learn more here!`,
-          structure: `# H1: ${seoMetadata.primaryKeyword}\n## Introduction\n- Hook\n- Problem\n- Solution\n## Key Aspects of ${seoMetadata.primaryKeyword}\n## FAQ Section\n## Conclusion`
-        }
-      };
-    }
-
-    res.json(jsonResult);
-  } catch (error) {
-    console.error('Outline planning error:', error);
-    res.status(500).json({ error: 'Ollama is unreachable or failed to plan outline.' });
-  }
+  res.json({
+    success: true,
+    article: updated,
+    message: 'Published successfully to SynQ Blog!'
+  });
 });
 
 // 4. AI Generation Route (Ollama Streaming)
