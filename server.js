@@ -166,7 +166,22 @@ function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) 
   const isSocial = contentType === 'Social Article';
 
   if (isSocial) {
-    return `You are a visionary content creator and digital wellness philosopher writing an engaging, ready-to-share social media article on behalf of the brand "SynQ Social".
+    const hookType = seoMetadata.socialHookType || 'Bold Statement';
+    let hookInstruction = '';
+    
+    if (hookType === 'Contrarian') {
+      hookInstruction = 'A Contrarian hook that challenges common assumptions or consensus. Example: "Everyone is talking about AI. Few are talking about the privacy cost."';
+    } else if (hookType === 'Statistic') {
+      hookInstruction = 'A Statistic hook that opens with a compelling data point or stat (real or plausible mock). Example: "73% of consumers are concerned about how their data is being used online."';
+    } else if (hookType === 'Question') {
+      hookInstruction = 'A Question hook that asks a thought-provoking, deep question. Example: "Who really owns your social media identity?"';
+    } else if (hookType === 'Observation') {
+      hookInstruction = 'An Observation hook that shares a relatable and resonant observation. Example: "Social media was built to connect people. Today, many users feel more disconnected than ever."';
+    } else { // Bold Statement
+      hookInstruction = 'A Bold Statement hook making an assertive, forward-looking assertion. Example: "The future of social media won\'t be owned by a single company."';
+    }
+
+    return `You are a visionary content creator and digital wellness philosopher writing an engaging, ready-to-share social media update on behalf of the brand "SynQ Social".
 
 SynQ Social Reference Guide:
 - SynQ Social is a human-first digital ecosystem focused on privacy, digital ownership, emotional wellness, authentic connection, and decentralized internet culture.
@@ -181,17 +196,36 @@ SynQ Social Reference Guide:
 
 Brand Personality & Tone:
 - Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
-- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros.
+- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros. Never use AI clichés like "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".
+
+You MUST construct this post strictly adhering to the following LinkedIn Post Framework:
+
+1. Hook (First 1–3 Lines)
+   - The hook determines whether people stop scrolling.
+   - Hook Type: ${hookType}
+   - Hook Instruction: ${hookInstruction}
+   - Keep it short, punchy, and compelling.
+2. Problem / Context
+   - Explain why the topic matters. Give brief context about the current state/struggle (e.g. centralized controls, privacy invasions, algorithm addiction).
+3. Main Insight
+   - Present the key takeaway, solution, or argument.
+4. Supporting Points (3–5 Points)
+   - Present 3 to 5 key points. Use bullet points (using green checks ✅ or similar emojis) for easy reading.
+5. Your Perspective
+   - Add your/SynQ's unique opinion, experience, or future prediction.
+6. Discussion Question (CTA)
+   - Encourage engagement by asking a compelling discussion question at the end.
+7. Hashtags (3–7 Only)
+   - Add exactly 3 to 7 relevant hashtags (e.g., #SocialMedia, #DigitalPrivacy, #Web3, #FutureOfSocialMedia).
 
 LinkedIn/Social Article Generation Specifications:
 1. Target Audience: ${audience}
 2. Search Intent Type: ${intent}
 3. Target Country: ${country}
 4. E-E-A-T & Freshness: Include real-world context and reference the current year 2026.
-5. LENGTH LIMIT: The entire article/post must be strictly under 2,800 characters (approx. 350-450 words) so it fits LinkedIn's character limit. This is a hard limit.
-6. FORMAT: Format as a single ready-to-post LinkedIn update. Use an attention-grabbing hook at the top, clear formatting with emojis and bullet points, double line breaks for mobile readability, and close with a question to drive engagement, followed by a few relevant hashtags.
-7. Do NOT use HTML headings (like # or ##) or meta description sections in the main text.
-8. Naturally, subtly, and contextually weave in these keywords:
+5. LENGTH LIMIT: The entire post must be strictly under 2,800 characters (approx. 350-450 words) so it fits LinkedIn's character limit. This is a hard limit.
+6. Do NOT use HTML headings (like # or ##) or meta description sections in the main text.
+7. Naturally, subtly, and contextually weave in these keywords:
 ${keywordString}
 
 Format & Output Style:
@@ -371,8 +405,8 @@ app.delete('/api/articles/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Mock LinkedIn publishing
-app.post('/api/articles/:id/publish', async (req, res) => {
+// Mock LinkedIn draft saving
+app.post('/api/articles/:id/save-draft', async (req, res) => {
   const article = db.getArticle(req.params.id);
   if (!article) {
     return res.status(404).json({ error: 'Article not found' });
@@ -380,8 +414,8 @@ app.post('/api/articles/:id/publish', async (req, res) => {
 
   // Update status in local database
   const updated = db.updateArticle(req.params.id, {
-    status: 'published',
-    publishedAt: new Date().toISOString(),
+    status: 'draft_saved',
+    savedAt: new Date().toISOString(),
     publishedPlatform: 'linkedin'
   });
 
@@ -408,7 +442,7 @@ app.post('/api/articles/:id/publish', async (req, res) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event: 'article_published',
+          event: 'article_draft_saved',
           platform: 'linkedin',
           timestamp: new Date().toISOString(),
           article: updated,
@@ -434,13 +468,13 @@ app.post('/api/articles/:id/publish', async (req, res) => {
     article: updated,
     webhookStatus,
     message: webhookStatus.triggered 
-      ? (webhookStatus.success ? 'Published successfully and webhook triggered!' : `Published locally, but webhook failed: ${webhookStatus.error}`)
-      : 'Published successfully to mock LinkedIn feed!'
+      ? (webhookStatus.success ? 'Draft saved successfully and webhook triggered!' : `Draft saved locally, but webhook failed: ${webhookStatus.error}`)
+      : 'Draft saved successfully to mock LinkedIn drafts!'
   });
 });
 
-// Mock SynQ Blog publishing
-app.post('/api/articles/:id/publish-synq', async (req, res) => {
+// Mock SynQ Blog draft saving
+app.post('/api/articles/:id/save-draft-synq', async (req, res) => {
   const article = db.getArticle(req.params.id);
   if (!article) {
     return res.status(404).json({ error: 'Article not found' });
@@ -448,15 +482,15 @@ app.post('/api/articles/:id/publish-synq', async (req, res) => {
 
   // Update status in local database
   const updated = db.updateArticle(req.params.id, {
-    status: 'published',
-    publishedAt: new Date().toISOString(),
+    status: 'draft_saved',
+    savedAt: new Date().toISOString(),
     publishedPlatform: 'synq-blog'
   });
 
   res.json({
     success: true,
     article: updated,
-    message: 'Published successfully to SynQ Blog!'
+    message: 'Draft saved successfully to SynQ Blog!'
   });
 });
 

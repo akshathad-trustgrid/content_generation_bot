@@ -26,7 +26,8 @@ const state = {
     contentType: '',
     targetCountry: '',
     competitorUrls: [],
-    brandTone: ''
+    brandTone: '',
+    socialHookType: 'Bold Statement'
   },
   outline: null,
   detectedIntent: { type: 'Informational', goal: 'Teach' },
@@ -233,6 +234,16 @@ function loadArticleIntoWorkspace(article) {
   document.getElementById('seo-target-country').value = state.seoMetadata.targetCountry;
   document.getElementById('seo-competitor-urls').value = (state.seoMetadata.competitorUrls || []).join('\n');
   document.getElementById('seo-brand-tone').value = state.seoMetadata.brandTone;
+  
+  const hookGroup = document.getElementById('social-hook-group');
+  if (hookGroup) {
+    if (state.seoMetadata.contentType === 'Social Article') {
+      hookGroup.classList.remove('hidden');
+      document.getElementById('social-hook-type').value = state.seoMetadata.socialHookType || 'Bold Statement';
+    } else {
+      hookGroup.classList.add('hidden');
+    }
+  }
 
   // Show refinement panel
   document.getElementById('refinement-container').classList.remove('hidden');
@@ -295,6 +306,12 @@ function startNewArticle() {
   document.getElementById('seo-target-country').value = '';
   document.getElementById('seo-competitor-urls').value = '';
   document.getElementById('seo-brand-tone').value = '';
+  
+  const hookGroup = document.getElementById('social-hook-group');
+  if (hookGroup) {
+    hookGroup.classList.add('hidden');
+  }
+  document.getElementById('social-hook-type').value = 'Bold Statement';
 
   // Reset editor text areas
   document.getElementById('article-title-input').value = '';
@@ -468,6 +485,7 @@ async function handleAutoGenerate() {
   const targetCountry = document.getElementById('seo-target-country').value.trim();
   const competitorUrls = document.getElementById('seo-competitor-urls').value.split('\n').map(s => s.trim()).filter(Boolean);
   const brandTone = document.getElementById('seo-brand-tone').value.trim();
+  const socialHookType = document.getElementById('social-hook-type').value;
 
   state.seoMetadata = {
     primaryKeyword,
@@ -477,7 +495,8 @@ async function handleAutoGenerate() {
     contentType,
     targetCountry,
     competitorUrls,
-    brandTone
+    brandTone,
+    socialHookType
   };
 
   document.body.classList.add('is-processing');
@@ -671,9 +690,25 @@ function runSeoAudit() {
     ? (isSocial ? firstParagraph.toLowerCase().includes(primaryKeyword.toLowerCase()) : metaDescription.toLowerCase().includes(primaryKeyword.toLowerCase()))
     : false;
   const isMetaLengthOk = isSocial 
-    ? (firstParagraph.length >= 100 && firstParagraph.length <= 250) 
+    ? (firstParagraph.length >= 40 && firstParagraph.length <= 250) 
     : (metaDescription.length >= 130 && metaDescription.length <= 170);
-  const hasMetaCta = containsAny(isSocial ? firstParagraph : metaDescription, ['read', 'discover', 'learn', 'join', 'start', 'explore', 'find', 'own', 'reclaim', 'why', '?', 'what', 'how']);
+  
+  let isHookTypeMatch = false;
+  const hookType = (state.seoMetadata && state.seoMetadata.socialHookType) || 'Bold Statement';
+  if (isSocial) {
+    if (hookType === 'Question') {
+      isHookTypeMatch = firstParagraph.includes('?');
+    } else if (hookType === 'Statistic') {
+      isHookTypeMatch = /%|\b\d+\b/.test(firstParagraph);
+    } else if (hookType === 'Contrarian') {
+      isHookTypeMatch = containsAny(firstParagraph, ['don\'t', 'not', 'but', 'instead', 'wrong', 'stop', 'everyone', 'few', 'unpopular', 'no one', 'myth']);
+    } else if (hookType === 'Observation') {
+      isHookTypeMatch = containsAny(firstParagraph, ['noticed', 'observed', 'years', 'today', 'see', 'look', 'we ', 'always', 'social media', 'built to', 'often', 'everyone is']);
+    } else { // Bold Statement
+      isHookTypeMatch = containsAny(firstParagraph, ['will', 'must', 'is', 'never', 'won\'t', 'future', 'reclaim', 'own', 'freedom', 'privacy']);
+    }
+  }
+  const hasMetaCta = isSocial ? isHookTypeMatch : containsAny(metaDescription, ['read', 'discover', 'learn', 'join', 'start', 'explore', 'find', 'own', 'reclaim', 'why', '?', 'what', 'how']);
   
   if (hasMetaKeyword) metaScore += 5;
   if (isMetaLengthOk) metaScore += 5;
@@ -684,11 +719,11 @@ function runSeoAudit() {
     const metaHeader = document.querySelector('#audit-meta .audit-item-title');
     if (metaHeader) metaHeader.innerHTML = `<i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Hook Paragraph`;
     const r1 = document.getElementById('rule-meta-length');
-    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook is 100-250 chars (<span id="meta-char-count">0</span> chars)`;
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook is 40-250 chars (<span id="meta-char-count">0</span> chars)`;
     const r2 = document.getElementById('rule-meta-keyword');
     if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook keyword included`;
     const r3 = document.getElementById('rule-meta-cta');
-    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook question / CTA included`;
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hook matches type: ${hookType}`;
   } else {
     const metaHeader = document.querySelector('#audit-meta .audit-item-title');
     if (metaHeader) metaHeader.innerHTML = `<i data-lucide="file-text" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Meta Description`;
@@ -717,15 +752,15 @@ function runSeoAudit() {
   // Dynamic Headings UI labels
   if (isSocial) {
     const headingHeader = document.querySelector('#audit-headings .audit-item-title');
-    if (headingHeader) headingHeader.innerHTML = `<i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Social Formatting`;
+    if (headingHeader) headingHeader.innerHTML = `<i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> LinkedIn Post Layout`;
     const r1 = document.getElementById('rule-heading-h1');
-    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Clean style (No HTML/MD headers)`;
+    if (r1) r1.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Supporting Points: 3–5 bullets (<span id="li-bullet-count">0</span> count)`;
     const r2 = document.getElementById('rule-heading-hierarchy');
-    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Double line breaks for mobile spacing`;
+    if (r2) r2.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Hashtags: 3–7 tags (<span id="li-hashtag-count">0</span> count)`;
     const r3 = document.getElementById('rule-heading-questions');
-    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Bullet points / emojis present`;
+    if (r3) r3.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Discussion Question (CTA) present`;
     const r4 = document.getElementById('rule-heading-keyword');
-    if (r4) r4.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Under 3,000 characters limit (<span id="count-h1">0</span> chars)`;
+    if (r4) r4.innerHTML = `<i data-lucide="circle" style="width: 8px; height: 8px;"></i> Under 2,800 character limit (<span id="count-h1">0</span> chars)`;
   } else {
     const headingHeader = document.querySelector('#audit-headings .audit-item-title');
     if (headingHeader) headingHeader.innerHTML = `<i data-lucide="heading" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Heading Structure`;
@@ -740,23 +775,41 @@ function runSeoAudit() {
   }
 
   if (isSocial) {
-    const lines = content.split('\n');
-    const hasMdHeaders = lines.some(line => line.trim().startsWith('#'));
-    const cleanStyle = !hasMdHeaders;
-    const doubleLineBreaks = content.includes('\n\n');
-    const usesBulletsOrEmojis = containsAny(content, ['-', '*', '•', '✅', '🚀', '👉', '💡', '🔥', '📌', '✨', '✔']);
-    const underCharLimit = content.length <= 3000;
+    // Count bullets
+    const bulletRegex = /^([\-\*\•✅🚀👉💡🔥📌✨✔\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF])/;
+    const bulletLines = content.split('\n').filter(line => bulletRegex.test(line.trim()));
+    const bulletCount = bulletLines.length;
+    const isBulletCountOk = bulletCount >= 3 && bulletCount <= 5;
 
-    if (cleanStyle) headingScore += 4;
-    if (doubleLineBreaks) headingScore += 4;
-    if (usesBulletsOrEmojis) headingScore += 4;
-    if (underCharLimit) headingScore += 3;
+    // Count hashtags
+    const hashtagMatches = content.match(/#[A-Za-z0-9_\u00C0-\u00FF]+/g);
+    const hashtagCount = hashtagMatches ? hashtagMatches.length : 0;
+    const isHashtagCountOk = hashtagCount >= 3 && hashtagCount <= 7;
 
-    document.getElementById('count-h1').innerText = content.length; // Show character count
-    updateRuleState('rule-heading-h1', cleanStyle);
-    updateRuleState('rule-heading-hierarchy', doubleLineBreaks);
-    updateRuleState('rule-heading-questions', usesBulletsOrEmojis);
-    updateRuleState('rule-heading-keyword', underCharLimit);
+    // Check discussion question (CTA)
+    const lastPart = content.substring(Math.floor(content.length * 0.5));
+    const hasCtaQuestion = lastPart.includes('?');
+
+    // Check character limit
+    const isUnderLimit = content.length <= 2800;
+
+    if (isBulletCountOk) headingScore += 4;
+    if (isHashtagCountOk) headingScore += 4;
+    if (hasCtaQuestion) headingScore += 4;
+    if (isUnderLimit) headingScore += 3;
+
+    const bulletCountEl = document.getElementById('li-bullet-count');
+    if (bulletCountEl) bulletCountEl.innerText = bulletCount;
+    
+    const hashtagCountEl = document.getElementById('li-hashtag-count');
+    if (hashtagCountEl) hashtagCountEl.innerText = hashtagCount;
+    
+    document.getElementById('count-h1').innerText = content.length;
+
+    updateRuleState('rule-heading-h1', isBulletCountOk);
+    updateRuleState('rule-heading-hierarchy', isHashtagCountOk);
+    updateRuleState('rule-heading-questions', hasCtaQuestion);
+    updateRuleState('rule-heading-keyword', isUnderLimit);
   } else {
     const lines = content.split('\n');
     const h1s = lines.filter(line => line.trim().startsWith('# '));
@@ -1194,8 +1247,8 @@ async function handleConfirmPublishPlatform(platform) {
 
   document.body.classList.add('is-processing');
   const url = platform === 'linkedin' 
-    ? `/api/articles/${state.activeArticle.id}/publish`
-    : `/api/articles/${state.activeArticle.id}/publish-synq`;
+    ? `/api/articles/${state.activeArticle.id}/save-draft`
+    : `/api/articles/${state.activeArticle.id}/save-draft-synq`;
 
   try {
     const res = await fetch(url, { method: 'POST' });
@@ -1204,12 +1257,12 @@ async function handleConfirmPublishPlatform(platform) {
       state.activeArticle = data.article;
       await refreshLibrary();
       
-      let successMsg = `Published successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}!`;
+      let successMsg = `Draft saved successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}!`;
       if (platform === 'linkedin' && data.webhookStatus && data.webhookStatus.triggered) {
         if (data.webhookStatus.success) {
-          successMsg = 'Published successfully! LinkedIn webhook triggered.';
+          successMsg = 'Draft saved successfully! LinkedIn webhook triggered.';
         } else {
-          successMsg = `Published locally, but webhook failed: ${data.webhookStatus.error}`;
+          successMsg = `Draft saved locally, but webhook failed: ${data.webhookStatus.error}`;
         }
       }
       
@@ -1217,16 +1270,16 @@ async function handleConfirmPublishPlatform(platform) {
       triggerConfetti();
 
       setTimeout(() => {
-        if (confirm(`Article published successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}! Do you want to start a new workspace for your next article?`)) {
+        if (confirm(`Draft saved successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}! Do you want to start a new workspace for your next article?`)) {
           startNewArticle();
         }
       }, 1000);
     } else {
       const errData = await res.json();
-      showToast(errData.error || 'Error publishing article.', 'error');
+      showToast(errData.error || 'Error saving draft.', 'error');
     }
   } catch (err) {
-    showToast(`Error publishing article to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}.`, 'error');
+    showToast(`Error saving draft to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}.`, 'error');
   } finally {
     document.body.classList.remove('is-processing');
   }
@@ -1368,8 +1421,8 @@ function renderLibraryArticles() {
     card.innerHTML = `
       <div class="article-card-header">
         <span class="status-badge ${art.status}">
-          <i data-lucide="${art.status === 'published' ? 'check-circle-2' : 'file-edit'}"></i>
-          <span>${art.status}</span>
+          <i data-lucide="${art.status === 'draft_saved' || art.status === 'published' ? 'check-circle-2' : 'file-edit'}"></i>
+          <span>${art.status === 'draft_saved' ? 'draft saved' : art.status}</span>
         </span>
         <span class="article-card-date">${date}</span>
       </div>
@@ -1379,7 +1432,7 @@ function renderLibraryArticles() {
         <span class="card-kw-count">${art.keywords ? art.keywords.length : 0} keywords</span>
         <div class="article-actions">
           <button class="action-icon-btn btn-edit" title="Load into Editor"><i data-lucide="edit"></i></button>
-          <button class="action-icon-btn btn-publish-preview" title="Preview & Publish"><i data-lucide="share-2"></i></button>
+          <button class="action-icon-btn btn-publish-preview" title="Preview & Export"><i data-lucide="share-2"></i></button>
           <button class="action-icon-btn btn-delete" title="Delete Article"><i data-lucide="trash-2"></i></button>
         </div>
       </div>
@@ -1412,10 +1465,11 @@ function renderLibraryArticles() {
 
 function updateStats() {
   const drafts = state.articles.filter(art => art.status === 'draft').length;
-  const published = state.articles.filter(art => art.status === 'published').length;
+  const savedDrafts = state.articles.filter(art => art.status === 'draft_saved' || art.status === 'published').length;
 
   document.getElementById('stats-drafts').innerText = drafts;
-  document.getElementById('stats-published').innerText = published;
+  const statsSavedEl = document.getElementById('stats-saved-drafts');
+  if (statsSavedEl) statsSavedEl.innerText = savedDrafts;
   document.getElementById('library-count').innerText = state.articles.length;
 
   if (state.activeArticle && state.currentStep >= 3) {
@@ -1452,13 +1506,13 @@ function switchTab(tabId) {
 
   if (tabId === 'generator') {
     title.innerText = 'Content Workspace';
-    subtitle.innerText = 'Draft, refine, and publish cinematic content in favor of SynQ Social';
+    subtitle.innerText = 'Draft, refine, and save cinematic drafts in favor of SynQ Social';
     if (state.activeArticle && state.currentStep >= 3) {
       runSeoAudit();
     }
   } else if (tabId === 'library') {
     title.innerText = 'Articles Library';
-    subtitle.innerText = 'Review generated articles, organize your drafts and manage published items';
+    subtitle.innerText = 'Review generated articles, organize your local drafts, and manage saved drafts';
     refreshLibrary();
   } else if (tabId === 'settings') {
     title.innerText = 'Platform Settings';
@@ -1597,6 +1651,21 @@ function setupEventListeners() {
   if (intentTypeSelect) {
     intentTypeSelect.addEventListener('change', (e) => {
       document.getElementById('seo-intent-goal').value = intentGoals[e.target.value] || 'Teach';
+    });
+  }
+
+  // Content Type change listener to toggle Hook Type select
+  const contentTypeSelect = document.getElementById('seo-content-type');
+  if (contentTypeSelect) {
+    contentTypeSelect.addEventListener('change', (e) => {
+      const hookGroup = document.getElementById('social-hook-group');
+      if (hookGroup) {
+        if (e.target.value === 'Social Article') {
+          hookGroup.classList.remove('hidden');
+        } else {
+          hookGroup.classList.add('hidden');
+        }
+      }
     });
   }
 

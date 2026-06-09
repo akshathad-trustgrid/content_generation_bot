@@ -69,7 +69,7 @@
       <header class="app-header">
         <div class="header-welcome">
           <h1 id="page-title">Content Workspace</h1>
-          <p id="page-subtitle" class="text-muted">Draft, refine, and publish cinematic content in favor of SynQ Social</p>
+          <p id="page-subtitle" class="text-muted">Draft, refine, and save cinematic drafts in favor of SynQ Social</p>
         </div>
         
         <div class="header-stats">
@@ -78,8 +78,8 @@
             <span class="stat-lbl">Drafts</span>
           </div>
           <div class="stat-bubble">
-            <span class="stat-val" id="stats-published">0</span>
-            <span class="stat-lbl">Published</span>
+            <span class="stat-val" id="stats-saved-drafts">0</span>
+            <span class="stat-lbl">Saved Drafts</span>
           </div>
           <div class="stat-bubble">
             <span class="stat-val" id="stats-keywords">0%</span>
@@ -113,7 +113,7 @@
             <div class="step-arrow"><i data-lucide="chevron-right"></i></div>
             <div class="step-item" id="step-4-indicator">
               <div class="step-num">4</div>
-              <div class="step-label">Publish</div>
+              <div class="step-label">Export Draft</div>
             </div>
           </div>
 
@@ -174,6 +174,17 @@
                   </div>
                 </div>
 
+                <div class="form-group hidden" id="social-hook-group">
+                  <label for="social-hook-type">LinkedIn Hook Type</label>
+                  <select id="social-hook-type" style="width: 100%;">
+                    <option value="Contrarian">Contrarian</option>
+                    <option value="Statistic">Statistic</option>
+                    <option value="Question">Question</option>
+                    <option value="Observation">Observation</option>
+                    <option value="Bold Statement" selected>Bold Statement</option>
+                  </select>
+                </div>
+
                 <div class="form-group">
                   <label for="seo-competitor-urls">Competitor URLs (One per line)</label>
                   <textarea id="seo-competitor-urls" placeholder="e.g., https://competitor1.com/post" rows="2"></textarea>
@@ -212,14 +223,14 @@
                   </button>
                   <div class="dropdown-wrapper" style="position: relative;">
                     <button class="btn btn-accent" id="btn-publish-dropdown" disabled style="width: auto;">
-                      <i data-lucide="send"></i> Publish <i data-lucide="chevron-down" style="width:12px; height:12px; margin-left:4px;"></i>
+                      <i data-lucide="send"></i> Export Draft <i data-lucide="chevron-down" style="width:12px; height:12px; margin-left:4px;"></i>
                     </button>
                     <div class="dropdown-menu hidden" id="publish-dropdown-menu" style="position: absolute; right: 0; top: 100%; background: #110e1a; border: 1px solid var(--border-color); border-radius: 8px; z-index: 50; width: 180px; box-shadow: var(--shadow-modal); display: flex; flex-direction: column; padding: 4px; margin-top: 6px;">
                       <button class="dropdown-item" id="btn-pub-linkedin" style="background: none; border: none; color: #fff; padding: 10px 14px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: var(--font-main); font-size: 13px; border-radius: 6px; width: 100%;">
-                        <i data-lucide="linkedin" class="icon-linkedin" style="width: 14px; height: 14px;"></i> LinkedIn
+                        <i data-lucide="linkedin" class="icon-linkedin" style="width: 14px; height: 14px;"></i> Save to LinkedIn
                       </button>
                       <button class="dropdown-item" id="btn-pub-synq-blog" style="background: none; border: none; color: #fff; padding: 10px 14px; text-align: left; cursor: pointer; display: flex; align-items: center; gap: 8px; font-family: var(--font-main); font-size: 13px; border-radius: 6px; width: 100%;">
-                        <i data-lucide="book-open" style="width: 14px; height: 14px; color: var(--color-primary);"></i> SynQ Blog
+                        <i data-lucide="book-open" style="width: 14px; height: 14px; color: var(--color-primary);"></i> Save to SynQ Blog
                       </button>
                     </div>
                   </div>
@@ -227,7 +238,7 @@
                     <span>Next: Audit</span> <i data-lucide="arrow-right"></i>
                   </button>
                   <button class="btn btn-primary" id="btn-next-to-publish" style="width: auto; display: none;">
-                    <span>Next: Publish</span> <i data-lucide="arrow-right"></i>
+                    <span>Next: Export</span> <i data-lucide="arrow-right"></i>
                   </button>
                 </div>
               </div>
@@ -442,8 +453,8 @@
           <div class="library-toolbar card">
             <div class="library-filters">
               <button class="filter-btn active" data-filter="all">All Articles</button>
-              <button class="filter-btn" data-filter="draft">Drafts</button>
-              <button class="filter-btn" data-filter="published">Published</button>
+              <button class="filter-btn" data-filter="draft">Local Drafts</button>
+              <button class="filter-btn" data-filter="draft_saved">Saved Drafts</button>
             </div>
             <div class="library-search">
               <i data-lucide="search"></i>
@@ -477,14 +488,14 @@
               </div>
 
               <div class="form-group">
-                <label for="settings-webhook-url">Mock Publish Webhook URL</label>
+                <label for="settings-webhook-url">Mock Draft Webhook URL</label>
                 <div class="webhook-input-group" style="display: flex; gap: 10px; align-items: stretch;">
                   <input type="text" id="settings-webhook-url" placeholder="e.g. https://hooks.zapier.com/hooks/catch/..." style="flex: 1; margin-bottom: 0;">
                   <button class="btn btn-secondary" id="btn-test-webhook" style="width: auto; padding: 0 20px; white-space: nowrap; height: auto; display: flex; align-items: center; justify-content: center;">
                     <i data-lucide="send" style="width: 14px; height: 14px; margin-right: 6px;"></i> Test
                   </button>
                 </div>
-                <p class="help-text">Optional. If provided, hits this URL with article details when published.</p>
+                <p class="help-text">Optional. If provided, hits this URL with article details when draft is exported.</p>
 
                 <!-- Webhook Payload Schema Guide -->
                 <div class="webhook-guide-card" style="margin-top: 14px; background: rgba(138, 75, 243, 0.03); border: 1px dashed rgba(138, 75, 243, 0.2); border-radius: 8px; padding: 12px; transition: var(--transition-fast);">
@@ -496,17 +507,17 @@
                     <i data-lucide="chevron-down" id="schema-chevron" style="width: 14px; height: 14px; transition: transform var(--transition-fast);"></i>
                   </div>
                   <div class="webhook-guide-content hidden" id="webhook-schema-content" style="margin-top: 10px; font-size: 11px; color: var(--text-muted); border-top: 1px solid rgba(138, 75, 243, 0.1); padding-top: 10px;">
-                    <p style="margin-bottom: 8px;">Your webhook receives a <code>POST</code> request with a JSON payload when you publish an article. Here is the JSON schema:</p>
+                    <p style="margin-bottom: 8px;">Your webhook receives a <code>POST</code> request with a JSON payload when you export an article draft. Here is the JSON schema:</p>
                     <pre style="background: rgba(0, 0, 0, 0.4); padding: 10px; border-radius: 6px; font-family: var(--font-mono); overflow-x: auto; border: 1px solid rgba(255,255,255,0.05); color: #a78bfa; margin-top: 6px; line-height: 1.4;">{
-  "event": "article_published",
+  "event": "article_draft_saved",
   "platform": "linkedin",
   "timestamp": "2026-06-02T10:36:32.123Z",
-  "socialText": "Article Title\n\nArticle body ready to publish...",
+  "socialText": "Article Title\n\nArticle body saved as draft...",
   "article": {
     "id": "art_1780051364221",
     "title": "Article Title",
     "content": "Full markdown content...",
-    "status": "published",
+    "status": "draft_saved",
     "keywords": ["decentralized social", ...],
     "createdAt": "...",
     "updatedAt": "..."
@@ -521,7 +532,7 @@
 
             <div class="settings-profile card">
               <h2 class="card-title"><i data-lucide="user-check"></i> Social Media Author Settings</h2>
-              <p class="section-desc">Used to display the preview card for simulated social media publishing (LinkedIn, etc.).</p>
+              <p class="section-desc">Used to display the preview card for simulated social media drafts (LinkedIn, etc.).</p>
 
               <div class="form-group">
                 <label for="settings-author-name">Author Name</label>

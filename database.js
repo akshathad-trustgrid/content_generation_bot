@@ -87,7 +87,7 @@ class LocalDB {
       keywords: article.keywords || [],
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      publishedAt: null,
+      savedAt: null,
       ...article
     };
     data.articles.push(newArticle);
@@ -109,9 +109,9 @@ class LocalDB {
       updatedAt: new Date().toISOString()
     };
 
-    // If changing status to published and publishedAt is not set, set it
-    if (updatedFields.status === 'published' && !current.publishedAt) {
-      updated.publishedAt = new Date().toISOString();
+    // If changing status to draft_saved and savedAt is not set, set it
+    if (updatedFields.status === 'draft_saved' && !current.savedAt) {
+      updated.savedAt = new Date().toISOString();
     }
 
     data.articles[index] = updated;
