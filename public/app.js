@@ -1296,10 +1296,13 @@ function openPublishModal() {
   const rawContent = document.getElementById('article-editor-textarea').value;
 
   // Setup authors profile details
-  document.getElementById('li-post-author').innerText = state.config.authorName;
-  document.getElementById('li-post-title').innerText = state.config.authorTitle;
+  const authorName = (state.config && state.config.authorName) || 'SynQ Social Explorer';
+  const authorTitle = (state.config && state.config.authorTitle) || 'Digital Wellness Advocate, SynQ Social';
   
-  const initials = state.config.authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+  document.getElementById('li-post-author').innerText = authorName;
+  document.getElementById('li-post-title').innerText = authorTitle;
+  
+  const initials = authorName.split(' ').map(n => n ? n[0] : '').join('').slice(0, 2).toUpperCase();
   document.getElementById('li-post-avatar').innerText = initials;
 
   // Render content preview inside LinkedIn card
@@ -1308,7 +1311,8 @@ function openPublishModal() {
   // Use AI-generated social copy if available, otherwise fall back to formatted body text
   let bodyText = (state.activeArticle && state.activeArticle.socialText) || '';
   if (!bodyText) {
-    if (state.seoMetadata.contentType === 'Linkedin post') {
+    const contentType = (state.seoMetadata && state.seoMetadata.contentType) || '';
+    if (contentType === 'Linkedin post') {
       bodyText = rawContent;
     } else {
       bodyText = rawContent
@@ -1335,7 +1339,7 @@ function openPublishModal() {
     modalTabs.style.display = 'none'; // Always hide the tab switching bar
   }
 
-  const contentType = state.seoMetadata.contentType;
+  const contentType = (state.seoMetadata && state.seoMetadata.contentType) || '';
   if (contentType === 'synqBlog' || contentType === 'linkedin article' || contentType === 'linkedin newsletter') {
     if (modalTabBlog) {
       modalTabBlog.style.display = 'inline-flex';
