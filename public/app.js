@@ -121,46 +121,71 @@ async function refreshLibrary() {
 
 function parseMarkdown(md) {
   if (!md) return '';
-  let html = md;
-
+  
   // Escape HTML tags to prevent XSS
-  html = html
+  let html = md
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;');
 
-  // Headings
-  html = html.replace(/^#\s+(.+)$/gm, '<h1>$1</h1>');
-  html = html.replace(/^##\s+(.+)$/gm, '<h2>$1</h2>');
-  html = html.replace(/^###\s+(.+)$/gm, '<h3>$1</h3>');
+  // Split by double newlines or carriage return newlines
+  const blocks = html.split(/\n\s*\n/);
+  const parsedBlocks = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
 
-  // Blockquotes
-  html = html.replace(/^>\s+(.+)$/gm, '<blockquote>$1</blockquote>');
+    // Headings
+    if (block.startsWith('# ')) {
+      return `<h1>${parseInlineMarkdown(block.substring(2).trim())}</h1>`;
+    }
+    if (block.startsWith('## ')) {
+      return `<h2>${parseInlineMarkdown(block.substring(3).trim())}</h2>`;
+    }
+    if (block.startsWith('### ')) {
+      return `<h3>${parseInlineMarkdown(block.substring(4).trim())}</h3>`;
+    }
 
-  // Bold / Italic
-  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
-  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
-  html = html.replace(/__(.+?)__/g, '<strong>$1</strong>');
-  html = html.replace(/_(.+?)_/g, '<em>$1</em>');
+    // Blockquotes
+    if (block.startsWith('>')) {
+      const content = block.split('\n').map(line => line.replace(/^>\s?/, '')).join('\n');
+      return `<blockquote>${parseMarkdown(content)}</blockquote>`;
+    }
 
-  // Unordered Lists
-  html = html.replace(/^\s*-\s+(.+)$/gm, '<li>$1</li>');
-  // Wrap sequential <li> tags in <ul>
-  html = html.replace(/(<li>.+?<\/li>)+/gs, '<ul>$&</ul>');
+    // Unordered Lists
+    if (block.startsWith('- ') || block.startsWith('* ') || block.startsWith('• ')) {
+      const items = block.split('\n').map(line => {
+        const cleanedLine = line.replace(/^[\-\*\•]\s+/, '');
+        return `<li>${parseInlineMarkdown(cleanedLine.trim())}</li>`;
+      }).join('');
+      return `<ul>${items}</ul>`;
+    }
 
-  // Paragraph breaks (two newlines to paragraph tags, simple line breaks)
-  html = html.replace(/\n\n/g, '</p><p>');
-  html = html.replace(/\n/g, '<br>');
+    // Numbered Lists
+    if (/^\d+\.\s+/.test(block)) {
+      const items = block.split('\n').map(line => {
+        const cleanedLine = line.replace(/^\d+\.\s+/, '');
+        return `<li>${parseInlineMarkdown(cleanedLine.trim())}</li>`;
+      }).join('');
+      return `<ol>${items}</ol>`;
+    }
 
-  // Wrap inside outer paragraph if not already block-wrapped
-  if (!html.startsWith('<h') && !html.startsWith('<blockquote') && !html.startsWith('<ul')) {
-    html = `<p>${html}</p>`;
-  }
+    // Paragraph
+    // For single newlines, convert them to <br> to preserve line breaks within paragraphs
+    const paragraphContent = block.split('\n').join('<br>');
+    return `<p>${parseInlineMarkdown(paragraphContent)}</p>`;
+  });
 
-  // Remove empty paragraphs
-  html = html.replace(/<p><\/p>/g, '');
+  return parsedBlocks.filter(Boolean).join('\n');
+}
 
-  return html;
+function parseInlineMarkdown(text) {
+  // Bold
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
+  // Italic
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+  return text;
 }
 
 // --------------------------------------------------------------------------
@@ -201,10 +226,13 @@ function updateWordCount() {
 function loadArticleIntoWorkspace(article) {
   state.activeArticle = article;
   
+  const isPublished = article.status === 'draft_saved' || article.status === 'published';
+
   // Set input fields
   document.getElementById('article-title-input').value = article.title;
-  document.getElementById('article-title-input').readOnly = false;
+  document.getElementById('article-title-input').readOnly = isPublished;
   document.getElementById('article-editor-textarea').value = article.content;
+  document.getElementById('article-editor-textarea').readOnly = isPublished;
   
   // Setup editor mode
   setEditorMode('edit');
@@ -237,7 +265,7 @@ function loadArticleIntoWorkspace(article) {
   
   const hookGroup = document.getElementById('social-hook-group');
   if (hookGroup) {
-    if (state.seoMetadata.contentType === 'Social Article') {
+    if (state.seoMetadata.contentType === 'Linkedin post') {
       hookGroup.classList.remove('hidden');
       document.getElementById('social-hook-type').value = state.seoMetadata.socialHookType || 'Bold Statement';
     } else {
@@ -249,8 +277,17 @@ function loadArticleIntoWorkspace(article) {
   document.getElementById('refinement-container').classList.remove('hidden');
   renderRefinementHistory();
 
+  // Enable/disable refinement inputs
+  document.getElementById('btn-refine-article').disabled = isPublished;
+  document.getElementById('refine-prompt-input').disabled = isPublished;
+  if (isPublished) {
+    document.getElementById('refine-prompt-input').placeholder = "Published articles cannot be refined.";
+  } else {
+    document.getElementById('refine-prompt-input').placeholder = "e.g. Make the hook more cinematic, or include 'privacy social media app' in paragraph two...";
+  }
+
   // Enable action buttons
-  document.getElementById('btn-save-draft').disabled = false;
+  document.getElementById('btn-save-draft').disabled = isPublished;
   document.getElementById('btn-preview-content').disabled = false;
   document.getElementById('btn-publish-dropdown').disabled = false;
 
@@ -313,11 +350,17 @@ function startNewArticle() {
   }
   document.getElementById('social-hook-type').value = 'Bold Statement';
 
-  // Reset editor text areas
+  // Reset editor text areas and readOnly states
   document.getElementById('article-title-input').value = '';
   document.getElementById('article-title-input').readOnly = true;
   document.getElementById('article-editor-textarea').value = '';
+  document.getElementById('article-editor-textarea').readOnly = false;
   updateWordCount();
+
+  // Reset refinement inputs
+  document.getElementById('btn-refine-article').disabled = false;
+  document.getElementById('refine-prompt-input').disabled = false;
+  document.getElementById('refine-prompt-input').placeholder = "e.g. Make the hook more cinematic, or include 'privacy social media app' in paragraph two...";
 
   // Reset audit scores
   document.getElementById('seo-score-text').innerText = '0%';
@@ -431,6 +474,8 @@ function setStep(stepNum) {
   // Update header actions visibility based on active step
   const btnNextToAudit = document.getElementById('btn-next-to-audit');
   const btnNextToPublish = document.getElementById('btn-next-to-publish');
+  const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
+  const btnBackToStep2 = document.getElementById('btn-back-to-step-2');
   
   if (stepNum === 1) {
     if (sidebarLeft) sidebarLeft.classList.remove('hidden');
@@ -443,6 +488,8 @@ function setStep(stepNum) {
     
     if (btnNextToAudit) btnNextToAudit.style.display = 'none';
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
+    if (btnBackToStep1) btnBackToStep1.style.display = 'none';
+    if (btnBackToStep2) btnBackToStep2.style.display = 'none';
   } else if (stepNum === 2) {
     if (sidebarLeft) sidebarLeft.classList.add('hidden');
     
@@ -453,6 +500,8 @@ function setStep(stepNum) {
     
     if (btnNextToAudit) btnNextToAudit.style.display = 'inline-flex';
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
+    if (btnBackToStep1) btnBackToStep1.style.display = 'inline-flex';
+    if (btnBackToStep2) btnBackToStep2.style.display = 'none';
   } else if (stepNum === 3) {
     if (sidebarLeft) sidebarLeft.classList.add('hidden');
     
@@ -463,10 +512,14 @@ function setStep(stepNum) {
     
     if (btnNextToAudit) btnNextToAudit.style.display = 'none';
     if (btnNextToPublish) btnNextToPublish.style.display = 'inline-flex';
+    if (btnBackToStep1) btnBackToStep1.style.display = 'none';
+    if (btnBackToStep2) btnBackToStep2.style.display = 'inline-flex';
     
     // Trigger SEO Audit
     runSeoAudit();
   } else if (stepNum === 4) {
+    if (btnBackToStep1) btnBackToStep1.style.display = 'none';
+    if (btnBackToStep2) btnBackToStep2.style.display = 'none';
     openPublishModal();
   }
 }
@@ -629,7 +682,7 @@ function runSeoAudit() {
   }
 
   let totalScore = 0;
-  const isSocial = state.seoMetadata.contentType === 'Social Article';
+  const isSocial = state.seoMetadata.contentType === 'Linkedin post';
 
   const containsAny = (str, list) => list.some(item => str.toLowerCase().includes(item.toLowerCase()));
   const updateRuleState = (elementId, passed) => {
@@ -1213,11 +1266,15 @@ function openPublishModal() {
   // Use AI-generated social copy if available, otherwise fall back to formatted body text
   let bodyText = (state.activeArticle && state.activeArticle.socialText) || '';
   if (!bodyText) {
-    bodyText = rawContent
-      .replace(/^#\s+.+$/gm, '') // Remove top level title if present
-      .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
-      .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
-      .replace(/\*(.+?)\*/g, '$1');
+    if (state.seoMetadata.contentType === 'Linkedin post') {
+      bodyText = rawContent;
+    } else {
+      bodyText = rawContent
+        .replace(/^#\s+.+$/gm, '') // Remove top level title if present
+        .replace(/^##+\s+(.+)$/gm, '\n* $1 *\n') // Simplify headers
+        .replace(/\*\*(.+?)\*\*/g, '$1') // Remove bolds
+        .replace(/\*(.+?)\*/g, '$1');
+    }
   }
 
   document.getElementById('li-post-body-text').innerText = bodyText.trim();
@@ -1226,9 +1283,16 @@ function openPublishModal() {
   document.getElementById('blog-preview-title').innerText = title;
   document.getElementById('blog-preview-body').innerHTML = parseMarkdown(rawContent);
 
-  // Reset to LinkedIn preview tab by default
-  const tabLinkedin = document.getElementById('modal-tab-linkedin');
-  if (tabLinkedin) tabLinkedin.click();
+  // Reset to LinkedIn preview tab by default and configure tabs visibility
+  const modalTabLinkedin = document.getElementById('modal-tab-linkedin');
+  const modalTabBlog = document.getElementById('modal-tab-blog');
+  
+  if (state.seoMetadata.contentType === 'Linkedin post') {
+    if (modalTabBlog) modalTabBlog.style.display = 'none';
+    if (modalTabLinkedin) modalTabLinkedin.click();
+  } else {
+    if (modalTabBlog) modalTabBlog.style.display = 'inline-flex';
+  }
 
   // Show Modal
   document.getElementById('publish-modal').classList.remove('hidden');
@@ -1417,6 +1481,9 @@ function renderLibraryArticles() {
     });
 
     const cleanSnippet = art.content.replace(/^#.*$/gm, '').replace(/[\*\#\>]/g, '').trim();
+    const isPublished = art.status === 'draft_saved' || art.status === 'published';
+    const editIcon = isPublished ? 'eye' : 'edit';
+    const editTooltip = isPublished ? 'View Article' : 'Load into Editor';
 
     card.innerHTML = `
       <div class="article-card-header">
@@ -1431,7 +1498,7 @@ function renderLibraryArticles() {
       <div class="article-card-footer">
         <span class="card-kw-count">${art.keywords ? art.keywords.length : 0} keywords</span>
         <div class="article-actions">
-          <button class="action-icon-btn btn-edit" title="Load into Editor"><i data-lucide="edit"></i></button>
+          <button class="action-icon-btn btn-edit" title="${editTooltip}"><i data-lucide="${editIcon}"></i></button>
           <button class="action-icon-btn btn-publish-preview" title="Preview & Export"><i data-lucide="share-2"></i></button>
           <button class="action-icon-btn btn-delete" title="Delete Article"><i data-lucide="trash-2"></i></button>
         </div>
@@ -1564,7 +1631,7 @@ function setupEventListeners() {
     });
   }
 
-  // Next Buttons navigation
+  // Next & Back Buttons navigation
   const btnNextToStep2 = document.getElementById('btn-next-to-step-2');
   if (btnNextToStep2) {
     btnNextToStep2.addEventListener('click', () => setStep(2));
@@ -1576,6 +1643,14 @@ function setupEventListeners() {
   const btnNextToPublish = document.getElementById('btn-next-to-publish');
   if (btnNextToPublish) {
     btnNextToPublish.addEventListener('click', () => setStep(4));
+  }
+  const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
+  if (btnBackToStep1) {
+    btnBackToStep1.addEventListener('click', () => setStep(1));
+  }
+  const btnBackToStep2 = document.getElementById('btn-back-to-step-2');
+  if (btnBackToStep2) {
+    btnBackToStep2.addEventListener('click', () => setStep(2));
   }
 
   // Preview / Publish dropdown triggers
@@ -1660,7 +1735,7 @@ function setupEventListeners() {
     contentTypeSelect.addEventListener('change', (e) => {
       const hookGroup = document.getElementById('social-hook-group');
       if (hookGroup) {
-        if (e.target.value === 'Social Article') {
+        if (e.target.value === 'Linkedin post') {
           hookGroup.classList.remove('hidden');
         } else {
           hookGroup.classList.add('hidden');

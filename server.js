@@ -156,34 +156,30 @@ function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) 
   const audience = seoMetadata.targetAudience || 'Gen Z, Digital Natives';
   const intent = seoMetadata.searchIntent || 'Informational';
   const country = seoMetadata.targetCountry || 'United States';
-  const contentType = seoMetadata.contentType || 'Blog Post';
+  const contentType = seoMetadata.contentType || 'synqBlog';
   
   const keywordsList = [primary, ...secondary].filter(Boolean);
   const keywordString = keywordsList.length > 0
     ? keywordsList.map(kw => `- "${kw}"`).join('\n')
     : `Please weave in keywords relating to decentralized social networks, privacy chat applications, and alternatives to mainstream media.`;
 
-  const isSocial = contentType === 'Social Article';
+  const hookType = seoMetadata.socialHookType || 'Bold Statement';
+  let hookInstruction = '';
+  
+  if (hookType === 'Contrarian') {
+    hookInstruction = 'A Contrarian hook that challenges common assumptions or consensus. Example: "Everyone is talking about AI. Few are talking about the privacy cost."';
+  } else if (hookType === 'Statistic') {
+    hookInstruction = 'A Statistic hook that opens with a compelling data point or stat (real or plausible mock). Example: "73% of consumers are concerned about how their data is being used online."';
+  } else if (hookType === 'Question') {
+    hookInstruction = 'A Question hook that asks a thought-provoking, deep question. Example: "Who really owns your social media identity?"';
+  } else if (hookType === 'Observation') {
+    hookInstruction = 'An Observation hook that shares a relatable and resonant observation. Example: "Social media was built to connect people. Today, many users feel more disconnected than ever."';
+  } else { // Bold Statement
+    hookInstruction = 'A Bold Statement hook making an assertive, forward-looking assertion. Example: "The future of social media won\'t be owned by a single company."';
+  }
 
-  if (isSocial) {
-    const hookType = seoMetadata.socialHookType || 'Bold Statement';
-    let hookInstruction = '';
-    
-    if (hookType === 'Contrarian') {
-      hookInstruction = 'A Contrarian hook that challenges common assumptions or consensus. Example: "Everyone is talking about AI. Few are talking about the privacy cost."';
-    } else if (hookType === 'Statistic') {
-      hookInstruction = 'A Statistic hook that opens with a compelling data point or stat (real or plausible mock). Example: "73% of consumers are concerned about how their data is being used online."';
-    } else if (hookType === 'Question') {
-      hookInstruction = 'A Question hook that asks a thought-provoking, deep question. Example: "Who really owns your social media identity?"';
-    } else if (hookType === 'Observation') {
-      hookInstruction = 'An Observation hook that shares a relatable and resonant observation. Example: "Social media was built to connect people. Today, many users feel more disconnected than ever."';
-    } else { // Bold Statement
-      hookInstruction = 'A Bold Statement hook making an assertive, forward-looking assertion. Example: "The future of social media won\'t be owned by a single company."';
-    }
-
-    return `You are a visionary content creator and digital wellness philosopher writing an engaging, ready-to-share social media update on behalf of the brand "SynQ Social".
-
-SynQ Social Reference Guide:
+  // Base brand info
+  const brandGuide = `SynQ Social Reference Guide:
 - SynQ Social is a human-first digital ecosystem focused on privacy, digital ownership, emotional wellness, authentic connection, and decentralized internet culture.
 - Modern social media platforms have become: Addictive, Performative, Surveillance-driven, Algorithm-controlled, Emotionally exhausting, and built to exploit attention instead of improving lives.
 - Key core ideas behind SynQ Social:
@@ -196,7 +192,12 @@ SynQ Social Reference Guide:
 
 Brand Personality & Tone:
 - Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
-- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros. Never use AI clichés like "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".
+- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros. Never use AI clichés like "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".`;
+
+  if (contentType === 'Linkedin post') {
+    return `You are a visionary content creator and digital wellness philosopher writing an engaging, ready-to-share social media update on behalf of the brand "SynQ Social".
+
+${brandGuide}
 
 You MUST construct this post strictly adhering to the following LinkedIn Post Framework:
 
@@ -235,7 +236,66 @@ Format & Output Style:
 - Do NOT include any conversational intro/outro text (such as "Here is your social article...").`;
   }
 
-  // Blog posts and other standard SEO content types
+  if (contentType === 'linkedin article') {
+    return `You are a visionary content creator, expert content strategist, and digital wellness philosopher writing a professional LinkedIn Article on behalf of the brand "SynQ Social".
+
+${brandGuide}
+
+LinkedIn Article Specifications:
+1. Target Audience: ${audience}
+2. Search Intent Type: ${intent}
+3. Target Country: ${country}
+4. Length: 600–1000 words.
+5. E-E-A-T & Freshness: Include real-world context, statistics, examples, and reference the current year 2026.
+6. Structure:
+   - # [Engaging Title]
+   - ## Introduction (with a compelling hook)
+   - ## The Core Problem / Context (why this topic is crucial right now)
+   - ## Key Insights / Solutions (how SynQ Social or decentralized models solve it)
+   - ## Actionable Takeaways (bulleted practical recommendations)
+   - ## Conclusion (final inspiring thought)
+7. Do NOT include any meta description blocks ([META_DESCRIPTION_START]) or separate social post blocks ([SOCIAL_POST_START]). Output only the Markdown article itself.
+8. Naturally weave in these keywords (aim for 1.0% to 2.0% density):
+${keywordString}
+
+Format & Output Style:
+- Return your response strictly in Markdown.
+- Start directly with the H1 title (e.g. "# Reclaiming the Quiet...").
+- Do NOT include any conversational intro/outro text.`;
+  }
+
+  if (contentType === 'linkedin newsletter') {
+    return `You are a visionary content creator, expert editor, and digital wellness philosopher writing a serial Newsletter edition for LinkedIn on behalf of the brand "SynQ Social".
+
+${brandGuide}
+
+LinkedIn Newsletter Specifications:
+1. Target Audience: ${audience}
+2. Search Intent Type: ${intent}
+3. Target Country: ${country}
+4. Length: 800–1200 words.
+5. Tone: Highly conversational, warm, engaging, and professional. Address the reader as a subscriber/community member.
+6. E-E-A-T & Freshness: Include real-world context, references to 2026, and authentic examples.
+7. Structure:
+   - # [Catchy Newsletter Title] (e.g. "# SynQ Chronicles: Reclaiming Our Focus")
+   - A friendly opening greeting (e.g., "Welcome back to the SynQ Social Newsletter...")
+   - ## Introduction
+   - ## Understanding the Shift (contextual analysis of the topic)
+   - ## Behind the Scenes / Deep Dive (insights and critical analysis)
+   - ## Community Subscription Call-To-Action (encourage subscribing to the newsletter)
+   - ## Actionable Next Steps (bulleted guide)
+   - ## Conclusion
+8. Do NOT include any meta description blocks or separate social post blocks. Output only the Markdown newsletter itself.
+9. Naturally weave in these keywords:
+${keywordString}
+
+Format & Output Style:
+- Return your response strictly in Markdown.
+- Start directly with the H1 title (e.g. "# SynQ Chronicles: ...").
+- Do NOT include any conversational intro/outro text outside of the newsletter body.`;
+  }
+
+  // Default: synqBlog (standard long-form SEO blog post)
   let structureInstructions = `You MUST follow this exact ARTICLE STRUCTURE:
 
 # [Engaging Title]
@@ -286,66 +346,22 @@ End with a thoughtful conclusion.`;
   }
 
   return `You are a visionary content creator, digital wellness philosopher, expert content strategist, SEO researcher, editor, and journalist.
-You are writing a high-quality SEO article on behalf of the brand "SynQ Social" based on the primary keyword/topic.
+You are writing a high-quality SEO article on behalf of the brand "SynQ Social" based on the primary keyword/topic: "${primary}".
 
-Based on the TOPIC (Primary Keyword): "${primary}", you must automatically determine and infer:
-* Search intent
-* Target audience
-* Content angle
-* Important subtopics
-* Related concepts
-* Reader questions
-* Article structure
-Do NOT rely on predefined assumptions; infer all of these yourself to maximize SEO impact and quality.
+Based on this topic, automatically determine and infer search intent, target audience, content angle, important subtopics, and reader questions to maximize SEO impact and quality.
 
 PROCESS:
+1. CONTENT PLANNING (Internal reasoning, do not output this plan)
+2. ARTICLE WRITING:
+   - Length: 1200–1800 words.
+   - Write naturally like a professional human writer. Avoid template-style writing and AI clichés.
+   - Explain WHY something matters with concrete real-world examples.
+   - Include both benefits and limitations.
 
-STEP 1 - CONTENT PLANNING (Internal reasoning, do not output this plan in your response)
-Before writing, internally determine:
-1. What readers searching this topic want to know.
-2. Whether the intent is informational, educational, comparison, opinion, guide, or trend analysis.
-3. The most important subtopics needed to fully explain the topic.
-4. Common misconceptions.
-5. Real-world examples.
-6. Practical takeaways.
-
-STEP 2 - ARTICLE WRITING
-Generate a high-quality article using the plan.
-
-Requirements:
-* Length: 1200–1800 words.
-* Write naturally like a professional human writer.
-* Avoid robotic or template-style writing.
-* Avoid generic phrases and AI clichés such as:
-  - "In today's digital age"
-  - "Technology is rapidly evolving"
-  - "It is important to note"
-  - "As we move forward"
-  - "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".
-* Explain WHY something matters.
-* Use concrete, real-world examples.
-* Connect supporting points to the main argument.
-* Include both benefits and limitations.
-* Include actionable insights.
-* Avoid repeating ideas.
-* Use smooth transitions between sections.
-
-SynQ Social Reference Guide:
-- SynQ Social is a human-first digital ecosystem focused on privacy, digital ownership, emotional wellness, authentic connection, and decentralized internet culture.
-- Modern social media platforms have become: Addictive, Performative, Surveillance-driven, Algorithm-controlled, Emotionally exhausting, and built to exploit attention instead of improving lives.
-- Key core ideas behind SynQ Social:
-  * People should own their digital identity and memories.
-  * Privacy is a fundamental human right.
-  * Real connection matters more than vanity metrics (likes, shares, followers).
-  * Social media should improve mental well-being, not exploit it.
-  * Technology must feel human again.
-  * The future internet should be decentralized, ethical, and user-first.
-
-Brand Personality & Tone:
-- Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
+${brandGuide}
 
 Keyword Integration:
-You must naturally, subtly, and contextually weave in the following keywords. They must read seamlessly and flow naturally within your cinematic paragraphs (aim for a keyword density of 1.0% to 2.5% for the primary keyword):
+You must naturally, subtly, and contextually weave in the following keywords:
 ${keywordString}
 
 Format & Output Style:
@@ -364,23 +380,14 @@ ${structureInstructions}
 Your ready-to-post LinkedIn copy goes here (strictly under 2,800 characters).
 [SOCIAL_POST_END]
 
-QUALITY RULES:
-* Every H2/H3 section must add new information.
-* No fluff.
-* No keyword stuffing.
-* No generic marketing language.
-* No unsupported claims.
-* Use a professional yet conversational tone.
-* Make the article useful even for someone completely unfamiliar with the topic.
-* Do NOT include any conversational intro/outro text (such as "Here is the article...").
-`;
+Do NOT include any conversational intro/outro text outside of these specified blocks.`;
 }
 
 const OUTLINE_SYSTEM_PROMPT = `You are an expert SEO Content Strategist. Your task is to perform keyword analysis, detect search intent, perform competitor planning, and generate structured outlines.
 You must return your response strictly as a JSON object.
 
-If the requested content type is "Social Article", return a plan focused on a high-impact, short-form narrative (no complex H2/H3 structures needed).
-If the requested content type is "Blog Post", return a comprehensive, SEO-optimized outline.
+If the requested content type is "Linkedin post", return a plan focused on a high-impact, short-form narrative (no complex H2/H3 structures needed).
+If the requested content type is "synqBlog", "linkedin article", or "linkedin newsletter", return a comprehensive, SEO-optimized outline.
 
 JSON format:
 {
@@ -389,7 +396,7 @@ JSON format:
   "outline": {
     "title": "SEO Optimized Title",
     "metaDescription": "130-170 chars with CTA",
-    "structure": "Detailed markdown outline (if Blog Post) or narrative arc (if Social Article)"
+    "structure": "Detailed markdown outline (if Blog Post) or narrative arc (if Linkedin post)"
   }
 }
 `;
@@ -465,6 +472,10 @@ app.get('/api/articles/:id', (req, res) => {
 });
 
 app.put('/api/articles/:id', (req, res) => {
+  const current = db.getArticle(req.params.id);
+  if (current && (current.status === 'draft_saved' || current.status === 'published')) {
+    return res.status(400).json({ error: 'Published articles cannot be modified.' });
+  }
   const updated = db.updateArticle(req.params.id, req.body);
   if (!updated) {
     return res.status(404).json({ error: 'Article not found' });
@@ -717,6 +728,10 @@ app.post('/api/articles/:id/refine', async (req, res) => {
   const article = db.getArticle(id);
   if (!article) {
     return res.status(404).json({ error: 'Article not found' });
+  }
+
+  if (article.status === 'draft_saved' || article.status === 'published') {
+    return res.status(400).json({ error: 'Published articles cannot be refined.' });
   }
 
   const config = db.getConfig();
