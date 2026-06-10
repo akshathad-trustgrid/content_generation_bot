@@ -473,7 +473,7 @@ app.get('/api/articles/:id', (req, res) => {
 
 app.put('/api/articles/:id', (req, res) => {
   const current = db.getArticle(req.params.id);
-  if (current && (current.status === 'draft_saved' || current.status === 'published')) {
+  if (current && current.status === 'published') {
     return res.status(400).json({ error: 'Published articles cannot be modified.' });
   }
   const updated = db.updateArticle(req.params.id, req.body);
@@ -491,8 +491,8 @@ app.delete('/api/articles/:id', (req, res) => {
   res.json({ success: true });
 });
 
-// Mock LinkedIn draft saving
-app.post('/api/articles/:id/save-draft', async (req, res) => {
+// Mock LinkedIn publishing
+app.post('/api/articles/:id/publish', async (req, res) => {
   const article = db.getArticle(req.params.id);
   if (!article) {
     return res.status(404).json({ error: 'Article not found' });
@@ -500,8 +500,8 @@ app.post('/api/articles/:id/save-draft', async (req, res) => {
 
   // Update status in local database
   const updated = db.updateArticle(req.params.id, {
-    status: 'draft_saved',
-    savedAt: new Date().toISOString(),
+    status: 'published',
+    publishedAt: new Date().toISOString(),
     publishedPlatform: 'linkedin'
   });
 
@@ -528,7 +528,7 @@ app.post('/api/articles/:id/save-draft', async (req, res) => {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          event: 'article_draft_saved',
+          event: 'article_published',
           platform: 'linkedin',
           timestamp: new Date().toISOString(),
           article: updated,
@@ -554,12 +554,12 @@ app.post('/api/articles/:id/save-draft', async (req, res) => {
     article: updated,
     webhookStatus,
     message: webhookStatus.triggered 
-      ? (webhookStatus.success ? 'Draft saved successfully and webhook triggered!' : `Draft saved locally, but webhook failed: ${webhookStatus.error}`)
-      : 'Draft saved successfully to mock LinkedIn drafts!'
+      ? (webhookStatus.success ? 'Published successfully and webhook triggered!' : `Published locally, but webhook failed: ${webhookStatus.error}`)
+      : 'Published successfully to mock LinkedIn feed!'
   });
 });
 
-// Mock SynQ Blog draft saving
+// Mock SynQ Blog draft saving & TrustGrid API integration
 app.post('/api/articles/:id/save-draft-synq', async (req, res) => {
   const article = db.getArticle(req.params.id);
   if (!article) {
@@ -573,10 +573,39 @@ app.post('/api/articles/:id/save-draft-synq', async (req, res) => {
     publishedPlatform: 'synq-blog'
   });
 
+  let apiStatus = { triggered: true, success: false, error: null };
+  try {
+    const response = await fetch('https://synqblog.trustgrid.com/api/blog', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: updated.title,
+        subTitle: updated.metaDescription || (updated.seoMetadata && updated.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
+        coverImage: null,
+        content: updated.content,
+        tags: (updated.keywords && updated.keywords.length > 0) ? updated.keywords : ['web3', 'social']
+      })
+    });
+
+    if (response.ok) {
+      apiStatus.success = true;
+      console.log(`Blog draft saved successfully to TrustGrid API for article: ${article.id}`);
+    } else {
+      apiStatus.error = `TrustGrid API returned status ${response.status} ${response.statusText}`;
+      console.error(`Blog draft saving returned error status ${response.status} for article: ${article.id}`);
+    }
+  } catch (err) {
+    console.error('TrustGrid API execution failed:', err.message);
+    apiStatus.error = err.message;
+  }
+
   res.json({
     success: true,
     article: updated,
-    message: 'Draft saved successfully to SynQ Blog!'
+    apiStatus,
+    message: apiStatus.success 
+      ? 'Draft saved successfully to SynQ Blog API!'
+      : `Draft saved locally, but SynQ Blog API failed: ${apiStatus.error}`
   });
 });
 
@@ -730,7 +759,7 @@ app.post('/api/articles/:id/refine', async (req, res) => {
     return res.status(404).json({ error: 'Article not found' });
   }
 
-  if (article.status === 'draft_saved' || article.status === 'published') {
+  if (article.status === 'published') {
     return res.status(400).json({ error: 'Published articles cannot be refined.' });
   }
 

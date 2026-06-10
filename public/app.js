@@ -226,7 +226,7 @@ function updateWordCount() {
 function loadArticleIntoWorkspace(article) {
   state.activeArticle = article;
   
-  const isPublished = article.status === 'draft_saved' || article.status === 'published';
+  const isPublished = article.status === 'published';
 
   // Set input fields
   document.getElementById('article-title-input').value = article.title;
@@ -1311,7 +1311,7 @@ async function handleConfirmPublishPlatform(platform) {
 
   document.body.classList.add('is-processing');
   const url = platform === 'linkedin' 
-    ? `/api/articles/${state.activeArticle.id}/save-draft`
+    ? `/api/articles/${state.activeArticle.id}/publish`
     : `/api/articles/${state.activeArticle.id}/save-draft-synq`;
 
   try {
@@ -1321,12 +1321,21 @@ async function handleConfirmPublishPlatform(platform) {
       state.activeArticle = data.article;
       await refreshLibrary();
       
-      let successMsg = `Draft saved successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}!`;
+      let successMsg = platform === 'linkedin'
+        ? `Published successfully to LinkedIn!`
+        : `Draft saved successfully to SynQ Blog!`;
+
       if (platform === 'linkedin' && data.webhookStatus && data.webhookStatus.triggered) {
         if (data.webhookStatus.success) {
-          successMsg = 'Draft saved successfully! LinkedIn webhook triggered.';
+          successMsg = 'Published successfully! LinkedIn webhook triggered.';
         } else {
-          successMsg = `Draft saved locally, but webhook failed: ${data.webhookStatus.error}`;
+          successMsg = `Published locally, but webhook failed: ${data.webhookStatus.error}`;
+        }
+      } else if (platform === 'synq-blog' && data.apiStatus && data.apiStatus.triggered) {
+        if (data.apiStatus.success) {
+          successMsg = 'Draft saved successfully to SynQ Blog API!';
+        } else {
+          successMsg = `Draft saved locally, but SynQ Blog API failed: ${data.apiStatus.error}`;
         }
       }
       
@@ -1334,16 +1343,17 @@ async function handleConfirmPublishPlatform(platform) {
       triggerConfetti();
 
       setTimeout(() => {
-        if (confirm(`Draft saved successfully to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}! Do you want to start a new workspace for your next article?`)) {
+        const actionLabel = platform === 'linkedin' ? 'published successfully to LinkedIn' : 'saved successfully to SynQ Blog';
+        if (confirm(`Article ${actionLabel}! Do you want to start a new workspace for your next article?`)) {
           startNewArticle();
         }
       }, 1000);
     } else {
       const errData = await res.json();
-      showToast(errData.error || 'Error saving draft.', 'error');
+      showToast(errData.error || `Error ${platform === 'linkedin' ? 'publishing article' : 'saving draft'}.`, 'error');
     }
   } catch (err) {
-    showToast(`Error saving draft to ${platform === 'linkedin' ? 'LinkedIn' : 'SynQ Blog'}.`, 'error');
+    showToast(`Error ${platform === 'linkedin' ? 'publishing article to LinkedIn' : 'saving draft to SynQ Blog'}.`, 'error');
   } finally {
     document.body.classList.remove('is-processing');
   }
@@ -1481,15 +1491,18 @@ function renderLibraryArticles() {
     });
 
     const cleanSnippet = art.content.replace(/^#.*$/gm, '').replace(/[\*\#\>]/g, '').trim();
-    const isPublished = art.status === 'draft_saved' || art.status === 'published';
+    const isPublished = art.status === 'published';
+    const isDraftSaved = art.status === 'draft_saved';
+    const isFinalized = isPublished || isDraftSaved;
     const editIcon = isPublished ? 'eye' : 'edit';
     const editTooltip = isPublished ? 'View Article' : 'Load into Editor';
+    const statusText = art.status === 'draft_saved' ? 'draft saved' : art.status;
 
     card.innerHTML = `
       <div class="article-card-header">
         <span class="status-badge ${art.status}">
-          <i data-lucide="${art.status === 'draft_saved' || art.status === 'published' ? 'check-circle-2' : 'file-edit'}"></i>
-          <span>${art.status === 'draft_saved' ? 'draft saved' : art.status}</span>
+          <i data-lucide="${isFinalized ? 'check-circle-2' : 'file-edit'}"></i>
+          <span>${statusText}</span>
         </span>
         <span class="article-card-date">${date}</span>
       </div>
@@ -1532,11 +1545,11 @@ function renderLibraryArticles() {
 
 function updateStats() {
   const drafts = state.articles.filter(art => art.status === 'draft').length;
-  const savedDrafts = state.articles.filter(art => art.status === 'draft_saved' || art.status === 'published').length;
+  const exported = state.articles.filter(art => art.status === 'draft_saved' || art.status === 'published').length;
 
   document.getElementById('stats-drafts').innerText = drafts;
   const statsSavedEl = document.getElementById('stats-saved-drafts');
-  if (statsSavedEl) statsSavedEl.innerText = savedDrafts;
+  if (statsSavedEl) statsSavedEl.innerText = exported;
   document.getElementById('library-count').innerText = state.articles.length;
 
   if (state.activeArticle && state.currentStep >= 3) {
@@ -1573,13 +1586,13 @@ function switchTab(tabId) {
 
   if (tabId === 'generator') {
     title.innerText = 'Content Workspace';
-    subtitle.innerText = 'Draft, refine, and save cinematic drafts in favor of SynQ Social';
+    subtitle.innerText = 'Draft, refine, and publish or save cinematic content in favor of SynQ Social';
     if (state.activeArticle && state.currentStep >= 3) {
       runSeoAudit();
     }
   } else if (tabId === 'library') {
     title.innerText = 'Articles Library';
-    subtitle.innerText = 'Review generated articles, organize your local drafts, and manage saved drafts';
+    subtitle.innerText = 'Review generated articles, organize your local drafts, and manage finalized content';
     refreshLibrary();
   } else if (tabId === 'settings') {
     title.innerText = 'Platform Settings';
