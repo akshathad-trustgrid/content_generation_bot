@@ -1201,37 +1201,63 @@ async function handleRefineArticle() {
 }
 
 async function handleSaveDraft() {
-  if (!state.activeArticle) return;
-  
-  const title = document.getElementById('article-title-input').value.trim();
+  const title = document.getElementById('article-title-input').value.trim() || 'Untitled Post';
   const content = document.getElementById('article-editor-textarea').value;
   const metaDescription = (state.activeArticle && state.activeArticle.metaDescription) || (state.outline && state.outline.metaDescription) || '';
 
+  const keywordsList = state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []);
+  const payload = {
+    title,
+    subTitle: metaDescription || (state.seoMetadata && state.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
+    content,
+    keywords: keywordsList,
+    tags: keywordsList.length > 0 ? keywordsList : ['web3', 'social'],
+    seoMetadata: state.seoMetadata,
+    outline: state.outline,
+    metaDescription
+  };
+
   try {
-    const keywordsList = state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []);
-    const res = await fetch(`/api/articles/${state.activeArticle.id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        title,
-        subTitle: metaDescription || (state.seoMetadata && state.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
-        content,
-        keywords: keywordsList,
-        tags: keywordsList.length > 0 ? keywordsList : ['web3', 'social'],
-        seoMetadata: state.seoMetadata,
-        outline: state.outline,
-        metaDescription
-      })
-    });
+    let res;
+    if (state.activeArticle) {
+      res = await fetch(`/api/articles/${state.activeArticle.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      res = await fetch('/api/articles', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ...payload,
+          status: 'draft'
+        })
+      });
+    }
 
     if (res.ok) {
       const updated = await res.json();
       state.activeArticle = updated;
       await refreshLibrary();
+      
+      // Enable editor buttons if they were disabled
+      const saveDraftBtn = document.getElementById('btn-save-draft');
+      const previewContentBtn = document.getElementById('btn-preview-content');
+      const publishDropdownBtn = document.getElementById('btn-publish-dropdown');
+      if (saveDraftBtn) saveDraftBtn.disabled = false;
+      if (previewContentBtn) previewContentBtn.disabled = false;
+      if (publishDropdownBtn) publishDropdownBtn.disabled = false;
+      
       showToast('Draft saved successfully. Click "+ New Article" to clear & start another!', 'success');
+      return true;
+    } else {
+      showToast('Failed to save draft content.', 'error');
+      return false;
     }
   } catch (err) {
     showToast('Failed to save draft content.', 'error');
+    return false;
   }
 }
 
@@ -1684,7 +1710,18 @@ function setupEventListeners() {
   }
   const step4Ind = document.getElementById('step-4-indicator');
   if (step4Ind) {
-    step4Ind.addEventListener('click', () => {
+    step4Ind.addEventListener('click', async () => {
+      if (!state.activeArticle) {
+        const title = document.getElementById('article-title-input').value.trim();
+        const content = document.getElementById('article-editor-textarea').value.trim();
+        if (!title && !content) {
+          showToast('Please write some content before exporting/publishing.', 'warning');
+          return;
+        }
+        showToast('Saving draft before preview...', 'info');
+        const success = await handleSaveDraft();
+        if (!success) return;
+      }
       if (state.activeArticle || state.currentStep >= 4) setStep(4);
     });
   }
@@ -1700,7 +1737,20 @@ function setupEventListeners() {
   }
   const btnNextToPublish = document.getElementById('btn-next-to-publish');
   if (btnNextToPublish) {
-    btnNextToPublish.addEventListener('click', () => setStep(4));
+    btnNextToPublish.addEventListener('click', async () => {
+      if (!state.activeArticle) {
+        const title = document.getElementById('article-title-input').value.trim();
+        const content = document.getElementById('article-editor-textarea').value.trim();
+        if (!title && !content) {
+          showToast('Please write some content before exporting/publishing.', 'warning');
+          return;
+        }
+        showToast('Saving draft before preview...', 'info');
+        const success = await handleSaveDraft();
+        if (!success) return;
+      }
+      setStep(4);
+    });
   }
   const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
   if (btnBackToStep1) {

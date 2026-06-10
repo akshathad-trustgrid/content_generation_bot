@@ -576,6 +576,11 @@ app.get('/api/articles', (req, res) => {
   res.json(db.getArticles());
 });
 
+app.post('/api/articles', (req, res) => {
+  const newArticle = db.addArticle(req.body);
+  res.json(newArticle);
+});
+
 app.get('/api/articles/:id', (req, res) => {
   const article = db.getArticle(req.params.id);
   if (!article) {
