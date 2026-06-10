@@ -1195,13 +1195,16 @@ async function handleSaveDraft() {
   const metaDescription = (state.activeArticle && state.activeArticle.metaDescription) || (state.outline && state.outline.metaDescription) || '';
 
   try {
+    const keywordsList = state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []);
     const res = await fetch(`/api/articles/${state.activeArticle.id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title,
+        subTitle: metaDescription || (state.seoMetadata && state.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
         content,
-        keywords: state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []),
+        keywords: keywordsList,
+        tags: keywordsList.length > 0 ? keywordsList : ['web3', 'social'],
         seoMetadata: state.seoMetadata,
         outline: state.outline,
         metaDescription

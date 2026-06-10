@@ -713,6 +713,7 @@ app.post('/api/articles/generate', async (req, res) => {
       // Save as draft in local database
       const savedArticle = db.addArticle({
         title,
+        subTitle: metaDescription || (seoMetadata && seoMetadata.primaryKeyword) || 'SynQ Social Blog',
         content,
         prompt: userPrompt,
         history: [
@@ -721,6 +722,7 @@ app.post('/api/articles/generate', async (req, res) => {
         ],
         status: 'draft',
         keywords: analyzedKeywords,
+        tags: (analyzedKeywords && analyzedKeywords.length > 0) ? analyzedKeywords : ['web3', 'social'],
         seoMetadata,
         outline,
         metaDescription,
