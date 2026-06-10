@@ -148,6 +148,117 @@ function analyzeKeywords(text) {
   return found;
 }
 
+// Helper to convert Markdown body to HTML for SynQ Blog API
+function markdownToHtml(md) {
+  if (!md) return '';
+
+  // Process blocks
+  const blocks = md.trim().split(/\n\s*\n/);
+  
+  const parsedBlocks = blocks.map(block => {
+    block = block.trim();
+    if (!block) return '';
+
+    // Headings
+    if (block.startsWith('# ')) {
+      return `<h1><span>${parseInlineMarkdown(block.substring(2).trim())}</span></h1>`;
+    }
+    if (block.startsWith('## ')) {
+      return `<h2><span>${parseInlineMarkdown(block.substring(3).trim())}</span></h2>`;
+    }
+    if (block.startsWith('### ')) {
+      return `<h3><span>${parseInlineMarkdown(block.substring(4).trim())}</span></h3>`;
+    }
+    if (block.startsWith('#### ')) {
+      return `<h4><span>${parseInlineMarkdown(block.substring(5).trim())}</span></h4>`;
+    }
+
+    // Blockquotes
+    if (block.startsWith('>')) {
+      const content = block.split('\n').map(line => line.replace(/^>\s?/, '')).join('\n');
+      return `<blockquote>${markdownToHtml(content)}</blockquote>`;
+    }
+
+    // Code blocks
+    if (block.startsWith('```')) {
+      const lines = block.split('\n');
+      const code = lines.slice(1, -1).join('\n');
+      return `<pre><code>${code}</code></pre>`;
+    }
+
+    // Tables
+    if (block.startsWith('|')) {
+      const lines = block.split('\n');
+      if (lines.length >= 2) {
+        const rows = lines.map((line, index) => {
+          const cells = line.split('|').map(c => c.trim()).filter((_, i, arr) => i > 0 && i < arr.length - 1);
+          const isHeader = index === 0;
+          const isDelimiter = index === 1 && cells.every(c => /^-+$/.test(c.replace(/:/g, '')));
+          
+          if (isDelimiter) return null;
+          
+          const cellTag = 'td';
+          const cellHtml = cells.map(c => `<${cellTag} colspan="1" rowspan="1"><p style="text-align: left;"><span>${isHeader ? '<strong>' + parseInlineMarkdown(c) + '</strong>' : parseInlineMarkdown(c)}</span></p></${cellTag}>`).join('');
+          return `<tr>${cellHtml}</tr>`;
+        }).filter(Boolean);
+
+        const bodyRows = rows.join('\n');
+        return `<table style="min-width: 75px;"><colgroup></colgroup><tbody>${bodyRows}</tbody></table>`;
+      }
+    }
+
+    // Unordered Lists
+    if (block.startsWith('- ') || block.startsWith('* ') || block.startsWith('• ') || block.startsWith('✅')) {
+      const items = block.split('\n').map(line => {
+        const cleanedLine = line.replace(/^([\-\*\•✅]|\u2022)\s+/, '');
+        return `<li><p style="text-align: left;"><span>${parseInlineMarkdown(cleanedLine.trim())}</span></p></li>`;
+      }).join('');
+      return `<ul>${items}</ul>`;
+    }
+
+    // Numbered Lists
+    if (/^\d+[\.\)]\s+/.test(block)) {
+      const items = block.split('\n').map(line => {
+        const cleanedLine = line.replace(/^\d+[\.\)]\s+/, '');
+        return `<li><p style="text-align: left;"><span>${parseInlineMarkdown(cleanedLine.trim())}</span></p></li>`;
+      }).join('');
+      return `<ol>${items}</ol>`;
+    }
+
+    // Standard Paragraph
+    const paragraphContent = block.split('\n').map(line => parseInlineMarkdown(line)).join('<br>');
+    return `<p style="text-align: left;"><span>${paragraphContent}</span></p>`;
+  });
+
+  return parsedBlocks.filter(Boolean).join('\n');
+}
+
+function parseInlineMarkdown(text) {
+  if (!text) return '';
+  
+  // Escape HTML brackets first to prevent injection issues, then parse custom markups
+  text = text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+
+  // Bold: **text**
+  text = text.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  text = text.replace(/__(.+?)__/g, '<strong>$1</strong>');
+
+  // Italic: *text*
+  text = text.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  text = text.replace(/_(.+?)_/g, '<em>$1</em>');
+
+  // Links: [text](url) -> <a target="_blank" rel="noreferrer noopener" href="$2">$1</a>
+  text = text.replace(/\[(.+?)\]\((.+?)\)/g, '<a target="_blank" rel="noreferrer noopener" href="$2">$1</a>');
+
+  // Inline code: `code`
+  text = text.replace(/`(.+?)`/g, '<code>$1</code>');
+
+  return text;
+}
+
 // Generate the master system prompt containing brand values and reference guidelines
 function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) {
   const primary = seoMetadata.primaryKeyword || '';
@@ -192,7 +303,9 @@ function getSystemPrompt(seoMetadata = {}, outline = null, legacyKeywords = []) 
 
 Brand Personality & Tone:
 - Personality: ${tone}. Visionary, Emotionally intelligent, Youthful, Internet-native, Thought-provoking, Philosophical but simple, Cinematic in tone.
-- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros. Never use AI clichés like "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".`;
+- CRITICAL WRITING RULE: NEVER sound corporate, robotic, overly technical, like a startup VC pitch, or like generic Web3/crypto marketing. Do not use cringe or forced slang. Avoid repeated phrases and generic intros. Never use AI clichés like "delve", "tapestry", "testament", "not only, but also", "in summary", "robust", "double-edged sword", "beacon", "crucial", "furthermore", "relevance", "in conclusion".
+- TITLE CREATIVITY: The title MUST be custom, highly creative, thought-provoking, and tailored specifically to the keyword/topic. NEVER output generic placeholder text like "Engaging Title", "Catchy Title", "Catchy Newsletter Title", "LinkedIn Post", "Article Title", or use bracketed templates for titles. Write the actual creative title directly.
+- FORMATTING TAG RULE: Do NOT include structural comments, labels, or formatting markers like "**[SOCIAL_POST_START]**" or similar bolded/modified tags in the final text. Place [META_DESCRIPTION_START], [META_DESCRIPTION_END], [SOCIAL_POST_START], and [SOCIAL_POST_END] on their own lines as clean, plain-text tags with absolutely no bolding, italics, or other markdown surrounding them, and do not put any introductory or transition text (like "Here is the social media post:") outside these blocks.`;
 
   if (contentType === 'Linkedin post') {
     return `You are a visionary content creator and digital wellness philosopher writing an engaging, ready-to-share social media update on behalf of the brand "SynQ Social".
@@ -248,7 +361,7 @@ LinkedIn Article Specifications:
 4. Length: 600–1000 words.
 5. E-E-A-T & Freshness: Include real-world context, statistics, examples, and reference the current year 2026.
 6. Structure:
-   - # [Engaging Title]
+   - A highly creative, customized Title (as H1, e.g. # Reclaiming the Quiet... - DO NOT use placeholder words like "Engaging Title" or brackets).
    - ## Introduction (with a compelling hook)
    - ## The Core Problem / Context (why this topic is crucial right now)
    - ## Key Insights / Solutions (how SynQ Social or decentralized models solve it)
@@ -277,7 +390,7 @@ LinkedIn Newsletter Specifications:
 5. Tone: Highly conversational, warm, engaging, and professional. Address the reader as a subscriber/community member.
 6. E-E-A-T & Freshness: Include real-world context, references to 2026, and authentic examples.
 7. Structure:
-   - # [Catchy Newsletter Title] (e.g. "# SynQ Chronicles: Reclaiming Our Focus")
+   - A highly catchy and creative newsletter edition Title (as H1, e.g. # SynQ Chronicles: Reclaiming Our Focus - DO NOT use the placeholder "Catchy Newsletter Title" or brackets).
    - A friendly opening greeting (e.g., "Welcome back to the SynQ Social Newsletter...")
    - ## Introduction
    - ## Understanding the Shift (contextual analysis of the topic)
@@ -298,7 +411,7 @@ Format & Output Style:
   // Default: synqBlog (standard long-form SEO blog post)
   let structureInstructions = `You MUST follow this exact ARTICLE STRUCTURE:
 
-# [Engaging Title]
+# A custom, highly creative title (DO NOT write the placeholder text "Engaging Title" or brackets)
 
 ## Introduction
 Hook the reader and explain why the topic matters.
@@ -332,7 +445,7 @@ End with a thoughtful conclusion.`;
 
   if (outline && outline.structure) {
     structureInstructions = `You MUST write the article incorporating this outline details:\n${outline.structure}\n\nBut you must follow the standard article structure layout below:
-- # [Engaging Title]
+- A custom, highly creative title (DO NOT write the placeholder text "Engaging Title" or brackets)
 - ## Introduction
 - ## Understanding the Topic
 - ## Key Insights
@@ -371,7 +484,7 @@ Format & Output Style:
 Your meta description goes here (130-170 characters, includes primary keyword and a call to action).
 [META_DESCRIPTION_END]
 
-- Immediately follow with the Article content starting with the H1 (e.g. "# Engaging Title...").
+- Immediately follow with the Article content starting with the H1 (e.g. "# A Custom Title...").
 - You MUST structure the article exactly as follows:
 ${structureInstructions}
 
@@ -582,7 +695,7 @@ app.post('/api/articles/:id/save-draft-synq', async (req, res) => {
         title: updated.title,
         subTitle: updated.metaDescription || (updated.seoMetadata && updated.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
         coverImage: null,
-        content: updated.content,
+        content: markdownToHtml(updated.content),
         tags: (updated.keywords && updated.keywords.length > 0) ? updated.keywords : ['web3', 'social']
       })
     });
@@ -608,6 +721,55 @@ app.post('/api/articles/:id/save-draft-synq', async (req, res) => {
       : `Draft saved locally, but SynQ Blog API failed: ${apiStatus.error}`
   });
 });
+
+// Helper to clean and parse LLM generated article response
+function cleanAndParseResponse(fullResponseText, outline, seoMetadata) {
+  let content = fullResponseText.trim();
+  let metaDescription = '';
+  let socialText = '';
+
+  // 1. Parse Meta Description
+  const metaRegex = /(?:\*\*|__)?\[META_DESCRIPTION_START\](?:\*\*|__)?([\s\S]*?)(?:\*\*|__)?\[META_DESCRIPTION_END\](?:\*\*|__)?/i;
+  const metaMatch = content.match(metaRegex);
+  if (metaMatch) {
+    metaDescription = metaMatch[1].trim();
+    content = content.replace(metaRegex, '').trim();
+  } else if (outline && outline.metaDescription) {
+    metaDescription = outline.metaDescription;
+  }
+
+  // 2. Parse Social Media Post
+  const socialRegex = /(?:\*\*|__)?\[SOCIAL_POST_START\](?:\*\*|__)?([\s\S]*?)(?:\*\*|__)?\[SOCIAL_POST_END\](?:\*\*|__)?/i;
+  const socialMatch = content.match(socialRegex);
+  if (socialMatch) {
+    socialText = socialMatch[1].trim();
+    content = content.replace(socialRegex, '').trim();
+  }
+
+  // 3. Clean up any leftover conversational text or phrases like "Here is the LinkedIn post:" that appear near the end of the text
+  content = content.replace(/(?:here is|below is|for the|dedicated|ready-to-post|social media post|linkedin post)[^\n]*\n*$/i, '').trim();
+  content = content.trim();
+
+  // 4. Extract H1 Title from first line
+  let title = 'Untitled SynQ Post';
+  const lines = content.split('\n');
+  if (lines[0] && lines[0].startsWith('#')) {
+    title = lines[0].replace(/^#+\s*/, '').trim();
+    content = lines.slice(1).join('\n').trim();
+  } else if (outline && outline.title) {
+    title = outline.title;
+  }
+
+  // Clean title: remove placeholders like "[Engaging Title]" or "Engaging Title:"
+  title = title.replace(/^(?:\*\*|__)?\[?(?:Engaging Title|Catchy Newsletter Title|Title|Engaging Newsletter Title|Catchy Title)\]?:?\s*(?:\*\*|__)?/i, '');
+  // Clean double bolds if LLM wrote "# **Title**"
+  title = title.replace(/^[\*\s]+|[\*\s]+$/g, '');
+  if (title.startsWith('[') && title.endsWith(']')) {
+    title = title.slice(1, -1).trim();
+  }
+
+  return { title, content, metaDescription, socialText };
+}
 
 // 4. AI Generation Route (Ollama Streaming)
 app.post('/api/articles/generate', async (req, res) => {
@@ -671,44 +833,8 @@ app.post('/api/articles/generate', async (req, res) => {
     });
 
     reader.on('end', () => {
-      // Analyze title and final keyword coverage
-      let title = 'Untitled SynQ Post';
-      let content = fullResponseText.trim();
-      let metaDescription = '';
-
-      // Parse Meta Description if enclosed in brackets
-      const metaStartTag = '[META_DESCRIPTION_START]';
-      const metaEndTag = '[META_DESCRIPTION_END]';
-      if (content.includes(metaStartTag) && content.includes(metaEndTag)) {
-        const startIdx = content.indexOf(metaStartTag) + metaStartTag.length;
-        const endIdx = content.indexOf(metaEndTag);
-        metaDescription = content.substring(startIdx, endIdx).trim();
-        content = (content.substring(0, content.indexOf(metaStartTag)) + content.substring(endIdx + metaEndTag.length)).trim();
-      } else if (outline && outline.metaDescription) {
-        metaDescription = outline.metaDescription;
-      }
-      
-      // Attempt to extract title from first line
-      const lines = content.split('\n');
-      if (lines[0] && lines[0].startsWith('#')) {
-        title = lines[0].replace(/^#\s*/, '').trim();
-        content = lines.slice(1).join('\n').trim();
-      } else if (outline && outline.title) {
-        title = outline.title;
-      }
-
+      const { title, content, metaDescription, socialText } = cleanAndParseResponse(fullResponseText, outline, seoMetadata);
       const analyzedKeywords = analyzeKeywords(fullResponseText);
-
-      // Parse Social Media Post if enclosed in brackets
-      let socialText = '';
-      const socialStartTag = '[SOCIAL_POST_START]';
-      const socialEndTag = '[SOCIAL_POST_END]';
-      if (content.includes(socialStartTag) && content.includes(socialEndTag)) {
-        const startIdx = content.indexOf(socialStartTag) + socialStartTag.length;
-        const endIdx = content.indexOf(socialEndTag);
-        socialText = content.substring(startIdx, endIdx).trim();
-        content = (content.substring(0, content.indexOf(socialStartTag)) + content.substring(endIdx + socialEndTag.length)).trim();
-      }
 
       // Save as draft in local database
       const savedArticle = db.addArticle({
@@ -829,39 +955,7 @@ app.post('/api/articles/:id/refine', async (req, res) => {
     });
 
     reader.on('end', () => {
-      let title = article.title;
-      let content = fullResponseText.trim();
-      let metaDescription = article.metaDescription || '';
-
-      // Parse Meta Description if enclosed in brackets
-      const metaStartTag = '[META_DESCRIPTION_START]';
-      const metaEndTag = '[META_DESCRIPTION_END]';
-      if (content.includes(metaStartTag) && content.includes(metaEndTag)) {
-        const startIdx = content.indexOf(metaStartTag) + metaStartTag.length;
-        const endIdx = content.indexOf(metaEndTag);
-        metaDescription = content.substring(startIdx, endIdx).trim();
-        content = (content.substring(0, content.indexOf(metaStartTag)) + content.substring(endIdx + metaEndTag.length)).trim();
-      }
-
-      // Extract updated title if returned in Markdown style
-      const lines = content.split('\n');
-      if (lines[0] && lines[0].startsWith('#')) {
-        title = lines[0].replace(/^#\s*/, '').trim();
-        content = lines.slice(1).join('\n').trim();
-      }
-
-      // Parse Social Media Post if enclosed in brackets
-      let socialText = article.socialText || '';
-      const socialStartTag = '[SOCIAL_POST_START]';
-      const socialEndTag = '[SOCIAL_POST_END]';
-      if (content.includes(socialStartTag) && content.includes(socialEndTag)) {
-        const startIdx = content.indexOf(socialStartTag) + socialStartTag.length;
-        const endIdx = content.indexOf(socialEndTag);
-        socialText = content.substring(startIdx, endIdx).trim();
-        content = (content.substring(0, content.indexOf(socialStartTag)) + content.substring(endIdx + socialEndTag.length)).trim();
-      }
-
-      // Re-evaluate keywords
+      const { title, content, metaDescription, socialText } = cleanAndParseResponse(fullResponseText, article.outline, article.seoMetadata);
       const analyzedKeywords = analyzeKeywords(fullResponseText);
 
       // Append new generation steps to history
@@ -877,8 +971,8 @@ app.post('/api/articles/:id/refine', async (req, res) => {
         content,
         history: updatedHistory,
         keywords: analyzedKeywords,
-        metaDescription,
-        socialText
+        metaDescription: metaDescription || article.metaDescription || '',
+        socialText: socialText || article.socialText || ''
       });
 
       res.write(`data: ${JSON.stringify({ done: true, article: updatedArticle })}\n\n`);

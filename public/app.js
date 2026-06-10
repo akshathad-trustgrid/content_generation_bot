@@ -477,6 +477,9 @@ function setStep(stepNum) {
   const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
   const btnBackToStep2 = document.getElementById('btn-back-to-step-2');
   
+  const btnPublishDropdown = document.getElementById('btn-publish-dropdown');
+  const publishDropdownWrapper = btnPublishDropdown ? btnPublishDropdown.closest('.dropdown-wrapper') : null;
+
   if (stepNum === 1) {
     if (sidebarLeft) sidebarLeft.classList.remove('hidden');
     if (panelStep1) panelStep1.classList.remove('hidden');
@@ -490,6 +493,8 @@ function setStep(stepNum) {
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
     if (btnBackToStep1) btnBackToStep1.style.display = 'none';
     if (btnBackToStep2) btnBackToStep2.style.display = 'none';
+    if (publishDropdownWrapper) publishDropdownWrapper.classList.add('hidden');
+    if (btnPublishDropdown) btnPublishDropdown.disabled = true;
   } else if (stepNum === 2) {
     if (sidebarLeft) sidebarLeft.classList.add('hidden');
     
@@ -502,6 +507,8 @@ function setStep(stepNum) {
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
     if (btnBackToStep1) btnBackToStep1.style.display = 'inline-flex';
     if (btnBackToStep2) btnBackToStep2.style.display = 'none';
+    if (publishDropdownWrapper) publishDropdownWrapper.classList.add('hidden');
+    if (btnPublishDropdown) btnPublishDropdown.disabled = true;
   } else if (stepNum === 3) {
     if (sidebarLeft) sidebarLeft.classList.add('hidden');
     
@@ -514,12 +521,18 @@ function setStep(stepNum) {
     if (btnNextToPublish) btnNextToPublish.style.display = 'inline-flex';
     if (btnBackToStep1) btnBackToStep1.style.display = 'none';
     if (btnBackToStep2) btnBackToStep2.style.display = 'inline-flex';
+    if (publishDropdownWrapper) publishDropdownWrapper.classList.add('hidden');
+    if (btnPublishDropdown) btnPublishDropdown.disabled = true;
     
     // Trigger SEO Audit
     runSeoAudit();
   } else if (stepNum === 4) {
     if (btnBackToStep1) btnBackToStep1.style.display = 'none';
     if (btnBackToStep2) btnBackToStep2.style.display = 'none';
+    if (btnNextToAudit) btnNextToAudit.style.display = 'none';
+    if (btnNextToPublish) btnNextToPublish.style.display = 'none';
+    if (publishDropdownWrapper) publishDropdownWrapper.classList.remove('hidden');
+    if (btnPublishDropdown) btnPublishDropdown.disabled = false;
     openPublishModal();
   }
 }
@@ -1286,15 +1299,44 @@ function openPublishModal() {
   document.getElementById('blog-preview-title').innerText = title;
   document.getElementById('blog-preview-body').innerHTML = parseMarkdown(rawContent);
 
-  // Reset to LinkedIn preview tab by default and configure tabs visibility
+  // Reset to relevant preview tab by default and configure tabs visibility
   const modalTabLinkedin = document.getElementById('modal-tab-linkedin');
   const modalTabBlog = document.getElementById('modal-tab-blog');
+  const modalTabs = document.querySelector('.modal-tabs');
+  const modalDescText = document.getElementById('modal-desc-text');
   
-  if (state.seoMetadata.contentType === 'Linkedin post') {
-    if (modalTabBlog) modalTabBlog.style.display = 'none';
-    if (modalTabLinkedin) modalTabLinkedin.click();
+  if (modalTabs) {
+    modalTabs.style.display = 'none'; // Always hide the tab switching bar
+  }
+
+  const contentType = state.seoMetadata.contentType;
+  if (contentType === 'synqBlog' || contentType === 'linkedin article' || contentType === 'linkedin newsletter') {
+    if (modalTabBlog) {
+      modalTabBlog.style.display = 'inline-flex';
+      modalTabBlog.click();
+    }
+    if (modalTabLinkedin) modalTabLinkedin.style.display = 'none';
+    
+    if (modalDescText) {
+      if (contentType === 'synqBlog') {
+        modalDescText.innerText = 'Review your blog draft as it will appear on SynQ Blog.';
+      } else if (contentType === 'linkedin article') {
+        modalDescText.innerText = 'Review your article as it will appear on LinkedIn.';
+      } else {
+        modalDescText.innerText = 'Review your newsletter as it will appear on LinkedIn.';
+      }
+    }
   } else {
-    if (modalTabBlog) modalTabBlog.style.display = 'inline-flex';
+    // Default to LinkedIn post
+    if (modalTabLinkedin) {
+      modalTabLinkedin.style.display = 'inline-flex';
+      modalTabLinkedin.click();
+    }
+    if (modalTabBlog) modalTabBlog.style.display = 'none';
+    
+    if (modalDescText) {
+      modalDescText.innerText = 'Review your post as it will appear on LinkedIn.';
+    }
   }
 
   // Show Modal
