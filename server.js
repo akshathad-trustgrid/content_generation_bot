@@ -13,11 +13,7 @@ app.use(cors());
 app.use(express.json());
 
 // Serve static frontend files
-app.use(express.static(path.join(__dirname, 'public'), {
-  setHeaders: (res, filepath) => {
-    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  }
-}));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Keywords registry
 const KEYWORDS = {
@@ -578,11 +574,6 @@ app.post('/api/config/test-webhook', async (req, res) => {
 // 3. Articles management CRUD
 app.get('/api/articles', (req, res) => {
   res.json(db.getArticles());
-});
-
-app.post('/api/articles', (req, res) => {
-  const newArticle = db.addArticle(req.body);
-  res.json(newArticle);
 });
 
 app.get('/api/articles/:id', (req, res) => {

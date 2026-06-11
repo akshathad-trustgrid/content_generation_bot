@@ -1201,63 +1201,37 @@ async function handleRefineArticle() {
 }
 
 async function handleSaveDraft() {
-  const title = document.getElementById('article-title-input').value.trim() || 'Untitled Post';
+  if (!state.activeArticle) return;
+  
+  const title = document.getElementById('article-title-input').value.trim();
   const content = document.getElementById('article-editor-textarea').value;
   const metaDescription = (state.activeArticle && state.activeArticle.metaDescription) || (state.outline && state.outline.metaDescription) || '';
 
-  const keywordsList = state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []);
-  const payload = {
-    title,
-    subTitle: metaDescription || (state.seoMetadata && state.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
-    content,
-    keywords: keywordsList,
-    tags: keywordsList.length > 0 ? keywordsList : ['web3', 'social'],
-    seoMetadata: state.seoMetadata,
-    outline: state.outline,
-    metaDescription
-  };
-
   try {
-    let res;
-    if (state.activeArticle) {
-      res = await fetch(`/api/articles/${state.activeArticle.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-    } else {
-      res = await fetch('/api/articles', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...payload,
-          status: 'draft'
-        })
-      });
-    }
+    const keywordsList = state.semanticKeywords.length > 0 ? state.semanticKeywords : (state.seoMetadata.primaryKeyword ? [state.seoMetadata.primaryKeyword] : []);
+    const res = await fetch(`/api/articles/${state.activeArticle.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        subTitle: metaDescription || (state.seoMetadata && state.seoMetadata.primaryKeyword) || 'SynQ Social Blog',
+        content,
+        keywords: keywordsList,
+        tags: keywordsList.length > 0 ? keywordsList : ['web3', 'social'],
+        seoMetadata: state.seoMetadata,
+        outline: state.outline,
+        metaDescription
+      })
+    });
 
     if (res.ok) {
       const updated = await res.json();
       state.activeArticle = updated;
       await refreshLibrary();
-      
-      // Enable editor buttons if they were disabled
-      const saveDraftBtn = document.getElementById('btn-save-draft');
-      const previewContentBtn = document.getElementById('btn-preview-content');
-      const publishDropdownBtn = document.getElementById('btn-publish-dropdown');
-      if (saveDraftBtn) saveDraftBtn.disabled = false;
-      if (previewContentBtn) previewContentBtn.disabled = false;
-      if (publishDropdownBtn) publishDropdownBtn.disabled = false;
-      
       showToast('Draft saved successfully. Click "+ New Article" to clear & start another!', 'success');
-      return true;
-    } else {
-      showToast('Failed to save draft content.', 'error');
-      return false;
     }
   } catch (err) {
     showToast('Failed to save draft content.', 'error');
-    return false;
   }
 }
 
@@ -1296,13 +1270,10 @@ function openPublishModal() {
   const rawContent = document.getElementById('article-editor-textarea').value;
 
   // Setup authors profile details
-  const authorName = (state.config && state.config.authorName) || 'SynQ Social Explorer';
-  const authorTitle = (state.config && state.config.authorTitle) || 'Digital Wellness Advocate, SynQ Social';
+  document.getElementById('li-post-author').innerText = state.config.authorName;
+  document.getElementById('li-post-title').innerText = state.config.authorTitle;
   
-  document.getElementById('li-post-author').innerText = authorName;
-  document.getElementById('li-post-title').innerText = authorTitle;
-  
-  const initials = authorName.split(' ').map(n => n ? n[0] : '').join('').slice(0, 2).toUpperCase();
+  const initials = state.config.authorName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
   document.getElementById('li-post-avatar').innerText = initials;
 
   // Render content preview inside LinkedIn card
@@ -1311,8 +1282,7 @@ function openPublishModal() {
   // Use AI-generated social copy if available, otherwise fall back to formatted body text
   let bodyText = (state.activeArticle && state.activeArticle.socialText) || '';
   if (!bodyText) {
-    const contentType = (state.seoMetadata && state.seoMetadata.contentType) || '';
-    if (contentType === 'Linkedin post') {
+    if (state.seoMetadata.contentType === 'Linkedin post') {
       bodyText = rawContent;
     } else {
       bodyText = rawContent
@@ -1339,7 +1309,7 @@ function openPublishModal() {
     modalTabs.style.display = 'none'; // Always hide the tab switching bar
   }
 
-  const contentType = (state.seoMetadata && state.seoMetadata.contentType) || '';
+  const contentType = state.seoMetadata.contentType;
   if (contentType === 'synqBlog' || contentType === 'linkedin article' || contentType === 'linkedin newsletter') {
     if (modalTabBlog) {
       modalTabBlog.style.display = 'inline-flex';
@@ -1714,18 +1684,7 @@ function setupEventListeners() {
   }
   const step4Ind = document.getElementById('step-4-indicator');
   if (step4Ind) {
-    step4Ind.addEventListener('click', async () => {
-      if (!state.activeArticle) {
-        const title = document.getElementById('article-title-input').value.trim();
-        const content = document.getElementById('article-editor-textarea').value.trim();
-        if (!title && !content) {
-          showToast('Please write some content before exporting/publishing.', 'warning');
-          return;
-        }
-        showToast('Saving draft before preview...', 'info');
-        const success = await handleSaveDraft();
-        if (!success) return;
-      }
+    step4Ind.addEventListener('click', () => {
       if (state.activeArticle || state.currentStep >= 4) setStep(4);
     });
   }
@@ -1741,20 +1700,7 @@ function setupEventListeners() {
   }
   const btnNextToPublish = document.getElementById('btn-next-to-publish');
   if (btnNextToPublish) {
-    btnNextToPublish.addEventListener('click', async () => {
-      if (!state.activeArticle) {
-        const title = document.getElementById('article-title-input').value.trim();
-        const content = document.getElementById('article-editor-textarea').value.trim();
-        if (!title && !content) {
-          showToast('Please write some content before exporting/publishing.', 'warning');
-          return;
-        }
-        showToast('Saving draft before preview...', 'info');
-        const success = await handleSaveDraft();
-        if (!success) return;
-      }
-      setStep(4);
-    });
+    btnNextToPublish.addEventListener('click', () => setStep(4));
   }
   const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
   if (btnBackToStep1) {
