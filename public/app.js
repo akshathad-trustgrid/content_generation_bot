@@ -476,6 +476,7 @@ function setStep(stepNum) {
   const btnNextToPublish = document.getElementById('btn-next-to-publish');
   const btnBackToStep1 = document.getElementById('btn-back-to-step-1');
   const btnBackToStep2 = document.getElementById('btn-back-to-step-2');
+  const btnBackToStep3 = document.getElementById('btn-back-to-step-3');
   
   const btnPublishDropdown = document.getElementById('btn-publish-dropdown');
   const publishDropdownWrapper = btnPublishDropdown ? btnPublishDropdown.closest('.dropdown-wrapper') : null;
@@ -493,6 +494,7 @@ function setStep(stepNum) {
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
     if (btnBackToStep1) btnBackToStep1.style.display = 'none';
     if (btnBackToStep2) btnBackToStep2.style.display = 'none';
+    if (btnBackToStep3) btnBackToStep3.style.display = 'none';
     if (publishDropdownWrapper) publishDropdownWrapper.classList.add('hidden');
     if (btnPublishDropdown) btnPublishDropdown.disabled = true;
   } else if (stepNum === 2) {
@@ -507,6 +509,7 @@ function setStep(stepNum) {
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
     if (btnBackToStep1) btnBackToStep1.style.display = 'inline-flex';
     if (btnBackToStep2) btnBackToStep2.style.display = 'none';
+    if (btnBackToStep3) btnBackToStep3.style.display = 'none';
     if (publishDropdownWrapper) publishDropdownWrapper.classList.add('hidden');
     if (btnPublishDropdown) btnPublishDropdown.disabled = true;
   } else if (stepNum === 3) {
@@ -521,19 +524,27 @@ function setStep(stepNum) {
     if (btnNextToPublish) btnNextToPublish.style.display = 'inline-flex';
     if (btnBackToStep1) btnBackToStep1.style.display = 'none';
     if (btnBackToStep2) btnBackToStep2.style.display = 'inline-flex';
+    if (btnBackToStep3) btnBackToStep3.style.display = 'none';
     if (publishDropdownWrapper) publishDropdownWrapper.classList.add('hidden');
     if (btnPublishDropdown) btnPublishDropdown.disabled = true;
     
     // Trigger SEO Audit
     runSeoAudit();
   } else if (stepNum === 4) {
+    if (sidebarLeft) sidebarLeft.classList.add('hidden');
+    
+    document.getElementById('editor-empty').classList.add('hidden');
+    document.getElementById('editor-wrapper').classList.remove('hidden');
+    document.getElementById('seo-audit-sidebar').classList.remove('hidden'); // Keep audit sidebar visible so they see their final optimization scores!
+    document.getElementById('refinement-container').classList.remove('hidden');
+    
     if (btnBackToStep1) btnBackToStep1.style.display = 'none';
     if (btnBackToStep2) btnBackToStep2.style.display = 'none';
+    if (btnBackToStep3) btnBackToStep3.style.display = 'inline-flex';
     if (btnNextToAudit) btnNextToAudit.style.display = 'none';
     if (btnNextToPublish) btnNextToPublish.style.display = 'none';
     if (publishDropdownWrapper) publishDropdownWrapper.classList.remove('hidden');
     if (btnPublishDropdown) btnPublishDropdown.disabled = false;
-    openPublishModal();
   }
 }
 
@@ -1346,9 +1357,6 @@ function openPublishModal() {
 
 function closePublishModal() {
   document.getElementById('publish-modal').classList.add('hidden');
-  if (state.currentStep === 4) {
-    setStep(3);
-  }
 }
 
 async function handleConfirmPublishPlatform(platform) {
@@ -1709,6 +1717,10 @@ function setupEventListeners() {
   const btnBackToStep2 = document.getElementById('btn-back-to-step-2');
   if (btnBackToStep2) {
     btnBackToStep2.addEventListener('click', () => setStep(2));
+  }
+  const btnBackToStep3 = document.getElementById('btn-back-to-step-3');
+  if (btnBackToStep3) {
+    btnBackToStep3.addEventListener('click', () => setStep(3));
   }
 
   // Preview / Publish dropdown triggers
